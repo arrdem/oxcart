@@ -44,8 +44,8 @@
 > more importantly, Walter and I had crossed the threshold of being a
 > crew. A fine day's work. We never heard another transmission on that
 > frequency all the way to the coast.
-
- - Brian Schul, "Sled Driver: Flying the World's Fastest Jet"
+>
+> –– Brian Schul, "Sled Driver: Flying the World's Fastest Jet"
 
 Oxcart is a prototype Clojure compiler which seeks to provide
 aggressive AOT compilation for performance and memory usage. At present
