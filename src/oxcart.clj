@@ -164,3 +164,68 @@
                (eval form options)
                (recur)))))
        nil)))
+
+
+(defn compile
+  "λ String → nil
+   λ String → config-map → nil
+
+  Loads a resource via load, applies any compilation transformations
+  specified in the config-map, emitting and loading the resulting
+  class files.
+
+  config-map:
+   `:passes` is a sequence of functions constituting an optimization
+    configuration. These functions must be
+    (λ form-seq → def-map → settings → whole-ast)
+    and pure. It is expected but not enforced that passes may not 
+    emit nodes which an emitter does not support. If passes is empty
+    no program transformations will be done and the emitter will be
+    invoked directly.
+
+    `:emitter` is a single function which is λ form-seq → nil which
+    is expected to emit the appropriate classfiles.
+
+    `:settings` may be a map containing `:passes` and `:emitter`,
+    these being option maps which will be applied respectively at the
+    invocation of each pass and the emitter."
+
+  ([res]
+     ;; FIXME:
+     ;;  Saner defaults with respect to the default emitter and
+     ;;  default passes would probably be a good thing in future.
+     (compile res nil))
+
+  ([res {:keys [passes emitter settings] :as config}]
+     {:pre [(every? fn? passes)
+            (fn? emitter)]}
+     (let [forms (atom [])
+           defs  (atom {})
+           config {:debug false
+                   :ast {:forms forms
+                         :defs defs}}]
+       ;; Loads and macroexpands all the code using the built config
+       ;; to generate the forms and defs structures.
+       (load res config)
+       
+       ;; The atoms now contain the whole analyzed program, apply
+       ;; program passes as updates over the entire AST. Updated ASTs
+       ;; are re-evaluated and the symbol to AST mapping rebuilt
+       ;; between each pass.
+       ;; 
+       ;; FIXME:
+       ;;   It's worth discussing the correctness of this approach on
+       ;;   the maining list.
+       (let [settings (:passes settings)]
+         (doseq [pass passes]
+           (swap! forms pass @defs settings)
+           (doseq [form @forms]
+             (eval form config))))
+
+       ;; Having taken an O(Nᵏ) compile operation to the face we now
+       ;; run the emitter and call it quits.
+       (let [settings (:emitter settings)]
+         (emitter @forms))
+
+       ;; Enforce nil result
+       nil)))
