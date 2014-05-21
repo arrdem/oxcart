@@ -13,8 +13,8 @@
    :author "Reid McKenzie"}
   (:refer-clojure :exclude [eval macroexpand-1 macroexpand load compile])
   (:require [clojure.tools.analyzer.jvm :as ana.jvm]
-            [clojure.tools.analyzer 
-             :refer [macroexpand-1 
+            [clojure.tools.analyzer
+             :refer [macroexpand-1
                      macroexpand]
              :as ana]
             [clojure.tools.emitter.jvm.emit :as e]
@@ -26,7 +26,7 @@
   (:import clojure.lang.IFn))
 
 
-(def root-directory 
+(def root-directory
   @#'clojure.core/root-directory)
 
 (def ^:dynamic *load-configuration*
@@ -58,12 +58,15 @@
   appropriate bytecode and returns a computed result side effecting
   the invoking Clojure runtime."
 
-  ([form] 
-     (eval form 
+  ([form]
+     (eval form
            (or *load-configuration*
                {:debug? false})))
 
-  ([form {:keys [debug? ast env classloader] :as options}]
+  ([form {:keys [debug? exec? ast env classloader]
+          :or   {exec? true
+                 debug? false}
+          :as options}]
      (let [defs-ast  (:defs ast)
            forms-ast (:forms ast)
            mform     (binding [macroexpand-1 ana.jvm/macroexpand-1]
@@ -84,43 +87,61 @@
 
            (doseq [expr statements]
              (eval expr options))
-           
+
            (eval ret options))
 
          ;; bare expression handling
          ;;-----------------------------
-         ;; FIXME:
+         ;; FIXME: Repeated analysis
          ;;   Is there some way that I can merge this so that only one
          ;;   ana.jvm/analyze invocation is required? I think the
          ;;   answer is no, but it'd be nice.
+
+         ;; FIXME: Closed over defs
+         ;;  This is gonna be invalid for a whole lot of code. Lambda
+         ;;  lifting is gonna come into play here methinks. I have to
+         ;;  get this working so that closed over defs are supported,
+         ;;  eg:
+         ;;
+         ;;  (let [x 3]
+         ;;    (def foo [y]
+         ;;         (+ x y)))
+         ;;
+         ;; This issue also impacts multimethods which are implemented
+         ;; with closed over defs.
+
          (let [ast   (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
                                ana/create-var    ana.jvm/create-var
                                ana/parse         ana.jvm/parse
                                ana/var?          var?]
-                       (ana.jvm/analyze mform 
-                                        (or env (ana.jvm/empty-env))))
-               r     (-> `(^:once fn* [] ~mform)
-                         (ana.jvm/analyze (or env (ana.jvm/empty-env)))
-                         (e/emit {:debug?       debug?
-                                  :class-loader (or classloader
-                                                    (clojure.lang.RT/makeClassLoader))}))
-               class (-> r meta :class)]
-           
+                       (ana.jvm/analyze mform
+                                        (or env (ana.jvm/empty-env))))]
+
            ;; the accumulator for the whole read program
            (when (and forms-ast
                       (atom? forms-ast))
              (swap! forms-ast conj ast))
-           
+
            ;; the accumulator for defs to structure
            (when (and defs-ast
                       (atom? defs-ast)
                       (patern/def? ast))
-             (swap! defs-ast assoc 
+             (swap! defs-ast assoc
                     (patern/def->symbol ast)
                     ast))
 
-           ;; and run the code for side-effects
-           (.invoke ^IFn (.newInstance ^Class class)))))))
+           ;; FIXME: Eval for side effects
+           ;;  Running code for side-effects may be something that I
+           ;;  need to conditionalize, see "Closed over defs"
+
+           ;; and run the code for side-effects.
+           (let [r     (-> `(^:once fn* [] ~mform)
+                           (ana.jvm/analyze (or env (ana.jvm/empty-env)))
+                           (e/emit {:debug?       debug?
+                                    :class-loader (or classloader
+                                                      (clojure.lang.RT/makeClassLoader))}))
+                 class (-> r meta :class)]
+             (.invoke ^IFn (.newInstance ^Class class))))))))
 
 
 (defn load
@@ -148,7 +169,8 @@
   ([res]
      (load res
            (or *load-configuration*
-               {:debug? false})))
+               {:debug? false
+                :exec?  true})))
 
   ([res {:keys [debug?] :as options}]
      (let [p      (str (apply str (replace {\. \/ \- \_} res)) ".clj")
@@ -166,8 +188,6 @@
          (loop []
            (let [form (r/read reader false eof)]
              (when (not= eof form)
-               (when debug?
-                 (println *ns* "|" form))
                (eval form options)
                (recur))))))
      nil))
@@ -184,14 +204,14 @@
   config-map:
    `:passes` is a sequence of functions constituting an optimization
     configuration. These functions must be
-    (λ form-seq → def-map → settings → whole-ast)
-    and pure. It is expected but not enforced that passes may not 
+    (λ form-seq → def-map → settings → form-seq)
+    and pure. It is expected but not enforced that passes may not
     emit nodes which an emitter does not support. If passes is empty
     no program transformations will be done and the emitter will be
     invoked directly.
 
     `:emitter` is a single function which is λ form-seq → nil which
-    is expected to emit the appropriate classfiles.
+    is expected to emit the appropriate classfiles as side effects.
 
     `:settings` may be a map containing `:passes` and `:emitter`,
     these being option maps which will be applied respectively at the
@@ -209,26 +229,33 @@
             (fn? emitter)]}
      (let [forms (atom [])
            defs  (atom {})
-           config {:debug false
+           config {:debug? false
+                   :exec?  true
                    :ast {:forms forms
                          :defs defs}}]
        ;; Loads and macroexpands all the code using the built config
        ;; to generate the forms and defs structures.
        (load res config)
-       
+
        ;; The atoms now contain the whole analyzed program, apply
        ;; program passes as updates over the entire AST. Updated ASTs
        ;; are re-evaluated and the symbol to AST mapping rebuilt
        ;; between each pass.
-       ;; 
-       ;; FIXME:
+       ;;
+       ;; FIXME: Implementation of method updates
        ;;   It's worth discussing the correctness of this approach on
-       ;;   the maining list.
+       ;;   the mailing list.
        (let [settings (:passes settings)]
          (doseq [pass passes]
            (swap! forms pass @defs settings)
-           (doseq [form @forms]
-             (eval form config))))
+
+           (let [eval-forms @forms]
+             (reset! forms [])
+             (reset! defs  {})
+
+             (doseq [form eval-forms]
+               (eval (:form form)
+                     config)))))
 
        ;; Having taken an O(Nᵏ) compile operation to the face we now
        ;; run the emitter and call it quits.
