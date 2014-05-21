@@ -13,6 +13,7 @@
 > forty-two knots, across the ground."
 >
 > –– Brian Schul, "Sled Driver: Flying the World's Fastest Jet"
+>
 > —– http://oppositelock.jalopnik.com/favorite-sr-71-story-1079127041
 
 Oxcart is a prototype Clojure compiler which seeks to provide
