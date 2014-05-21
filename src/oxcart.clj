@@ -161,4 +161,5 @@
                (when debug?
                  (println *ns* "|" form))
                (eval form options)
-               (recur))))))))
+               (recur)))))
+       nil)))
