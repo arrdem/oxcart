@@ -27,12 +27,34 @@
   @#'clojure.core/root-directory)
 
 (def ^:dynamic *load-configuration*
+  "Dynamic var that oxcart/load uses to stash its configuration.
+
+  Because load invocations may be recursive thanks to use, require and
+  literal load uses in order for a load to capture all the compilation
+  requested into a configuration containing AST atoms the AST atoms
+  must be made visible to subsequent invocations of oxcart/load. This
+  var combined with the single arity case of oxcart/load provides the
+  required configuration persistance.
+
+  nil by default, may be a valid configuration map for oxcart/load."
   nil)
+
 
 (defn atom? [x]
   (instance? clojure.lang.Atom x))
 
+
 (defn eval
+  "λ form → value
+   λ form → config-map → value
+
+  Form is any Clojure sexpr, config map is a load configuration and
+  value is an arbitrary Clojure value or class.
+
+  Analyzes the form argument via tools.analyzer.jvm, emits the
+  appropriate bytecode and returns a computed result side effecting
+  the invoking Clojure runtime."
+
   ([form] 
      (eval form {:debug? false}))
 
@@ -93,6 +115,27 @@
 
 
 (defn load
+  "λ String → nil
+   λ String → config-map → nil
+
+  Loads a resource on the classpath identified by a string path as
+  clojure code via eval for side-effects against the invoking Clojure
+  runtime.
+
+  config-map:
+    If config-map is not provided, it will default to the value of
+    *load-configuration* or {:debug? false}.
+
+    If config contains a :debug? key, then printing of the generated
+    class bytecode and other development information is enabled.
+
+    If config contains an atom at [:ast :defs] the ASTs of all def
+    symbols will be assoc'd into that atom keyed on the symbol they
+    define. Multiple definitions will overwrite each other.
+
+    If config contains an atom at [:ast :forms] the ASTs of all read
+    forms will be conj'd to it in reading & evaluation order."
+
   ([res]
      (load res
            (or *load-configuration*
@@ -108,7 +151,8 @@
            reader (readers/indexing-push-back-reader file 1 p)]
        (binding [*ns*                 *ns*
                  *file*               p
-                 *load-configuration* options]
+                 *load-configuration* options
+                 clojure.core/load    oxcart/load]
          (loop []
            (let [form (r/read reader false eof)]
              (when (not= eof form)
