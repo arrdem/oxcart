@@ -86,6 +86,10 @@
 
          ;; bare expression handling
          ;;-----------------------------
+         ;; FIXME:
+         ;;   Is there some way that I can merge this so that only one
+         ;;   ana.jvm/analyze invocation is required? I think the
+         ;;   answer is no, but it'd be nice.
          (let [ast   (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
                                ana/create-var    ana.jvm/create-var
                                ana/parse         ana.jvm/parse
