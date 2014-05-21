@@ -162,8 +162,8 @@
                (when debug?
                  (println *ns* "|" form))
                (eval form options)
-               (recur)))))
-       nil)))
+               (recur))))))
+     nil))
 
 
 (defn compile
@@ -197,7 +197,8 @@
      (compile res nil))
 
   ([res {:keys [passes emitter settings] :as config}]
-     {:pre [(every? fn? passes)
+     {:pre [(seq? passes)
+            (every? fn? passes)
             (fn? emitter)]}
      (let [forms (atom [])
            defs  (atom {})
@@ -225,7 +226,5 @@
        ;; Having taken an O(Nᵏ) compile operation to the face we now
        ;; run the emitter and call it quits.
        (let [settings (:emitter settings)]
-         (emitter @forms))
-
-       ;; Enforce nil result
-       nil)))
+         (emitter @forms)))
+     nil))
