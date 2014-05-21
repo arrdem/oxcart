@@ -1,4 +1,4 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors.  The use
+;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
 ;;   and distribution terms for this software are covered by the
 ;;   Eclipse Public License 1.0
 ;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
@@ -8,6 +8,9 @@
 ;;   notice, or any other, from this software.
 
 (ns oxcart
+  {:doc "Implementation of the Oxcart compiler & API."
+   :added "0.0.1"
+   :author "Reid McKenzie"}
   (:refer-clojure :exclude [eval macroexpand-1 macroexpand load compile])
   (:require [clojure.tools.analyzer.jvm :as ana.jvm]
             [clojure.tools.analyzer 
