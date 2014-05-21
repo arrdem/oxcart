@@ -233,5 +233,5 @@
        ;; Having taken an O(Nᵏ) compile operation to the face we now
        ;; run the emitter and call it quits.
        (let [settings (:emitter settings)]
-         (emitter @forms)))
+         (emitter @forms settings)))
      nil))
