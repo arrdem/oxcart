@@ -1,14 +1,20 @@
-# oxcart
+# Project Oxcart
 
-A Clojure library designed to ... well, that part is up to you.
+<center>
+  <img src="./resources/oxcart.jpg">
+  </img>
+</center>
 
-## Usage
-
-FIXME
+Oxcart is a prototype Clojure compiler which seeks to provide
+agressive AOT compilation for performance and memory usage. At present
+Oxcart is a holding tank for changes which will likely be split up
+between
+[tools.emitter.jvm](https://github.com/clojure/tools.emitter.jvm),
+[tools.analyzer.jvm](https://github.com/clojure/tools.analyzer.jvm)
+and some future `tools.optimizer.jvm`.
 
 ## License
 
-Copyright © 2014 FIXME
+Copyright © 2014 Reid McKenzie, Rich Hickey & contributors.
 
-Distributed under the Eclipse Public License either version 1.0 or (at
-your option) any later version.
+Distributed under the Eclipse Public License, the same as Clojure.
