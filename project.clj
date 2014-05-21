@@ -1,4 +1,4 @@
-(defproject me.arrdem/oxcart "0.1.0-SNAPSHOT"
+(defproject me.arrdem/oxcart (slurp "VERSION")
   :description "An experimental optimizing compiler for Clojure code"
   :url "http://github.com/arrdem/oxcart"
   :license {:name "Eclipse Public License"
