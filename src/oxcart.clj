@@ -154,7 +154,8 @@
        (binding [*ns*                 *ns*
                  *file*               p
                  *load-configuration* options
-                 clojure.core/load    oxcart/load]
+                 clojure.core/load    oxcart/load
+                 clojure.core/eval    oxcart/eval]
          (loop []
            (let [form (r/read reader false eof)]
              (when (not= eof form)
