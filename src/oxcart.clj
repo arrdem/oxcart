@@ -56,7 +56,9 @@
   the invoking Clojure runtime."
 
   ([form] 
-     (eval form {:debug? false}))
+     (eval form 
+           (or *load-configuration*
+               {:debug? false})))
 
   ([form {:keys [debug? ast env classloader] :as options}]
      (let [defs-ast  (:defs ast)
