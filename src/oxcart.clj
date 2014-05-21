@@ -74,12 +74,6 @@
                                               (clojure.lang.RT/makeClassLoader))})
                class (-> r meta :class)]
            
-           (when debug?
-             (println (format "defs-ast: %s forms-ast: %s def?: %s"
-                              (atom? defs-ast)
-                              (atom? forms-ast)
-                              (patern/def? ast))))
-
            ;; the accumulator for the whole read program
            (when (and forms-ast
                       (atom? forms-ast))
