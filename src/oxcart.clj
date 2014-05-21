@@ -8,7 +8,7 @@
 ;;   notice, or any other, from this software.
 
 (ns oxcart
-  (:refer-clojure :exclude [eval macroexpand-1 macroexpand load])
+  (:refer-clojure :exclude [eval macroexpand-1 macroexpand load compile])
   (:require [clojure.tools.analyzer.jvm :as ana.jvm]
             [clojure.tools.analyzer 
              :refer [macroexpand-1 
