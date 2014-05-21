@@ -7,4 +7,5 @@
                  [org.clojure/clojure            "1.5.1"]
                  [org.clojure/tools.analyzer.jvm "0.1.0"]
                  [org.clojure/tools.emitter.jvm  "0.1.0"]
+                 [org.clojure/tools.reader       "0.8.4"]
                  ])
