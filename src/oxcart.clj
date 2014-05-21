@@ -62,16 +62,17 @@
 
          ;; bare expression handling
          ;;-----------------------------
-         (let [ast (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
-                             ana/create-var    ana.jvm/create-var
-                             ana/parse         ana.jvm/parse
-                             ana/var?          var?]
-                     (ana.jvm/analyze mform (or env (ana.jvm/empty-env))))
-               r   (e/emit (ana.jvm/analyze `(^:once fn* [] ~mform)
-                                            (or env (ana.jvm/empty-env)))
-                           {:debug?       debug?
-                            :class-loader (or classloader
-                                              (clojure.lang.RT/makeClassLoader))})
+         (let [ast   (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
+                               ana/create-var    ana.jvm/create-var
+                               ana/parse         ana.jvm/parse
+                               ana/var?          var?]
+                       (ana.jvm/analyze mform 
+                                        (or env (ana.jvm/empty-env))))
+               r     (-> `(^:once fn* [] ~mform)
+                         (ana.jvm/analyze (or env (ana.jvm/empty-env)))
+                         (e/emit {:debug?       debug?
+                                  :class-loader (or classloader
+                                                    (clojure.lang.RT/makeClassLoader))}))
                class (-> r meta :class)]
            
            ;; the accumulator for the whole read program
