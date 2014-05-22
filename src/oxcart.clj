@@ -63,12 +63,11 @@
            (or *load-configuration*
                {:debug? false})))
 
-  ([form {:keys [debug? exec? forms env classloader]
+  ([form {:keys [debug? exec? forms classloader]
           :or   {debug? false}
           :as   options}]
      (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
-                   (macroexpand form
-                                (or env (ana.jvm/empty-env))))]
+                   (macroexpand form (ana.jvm/empty-env)))]
 
        (if (and (seq? mform)
                 (= 'do (first mform)))
@@ -96,7 +95,7 @@
 
          (do ;; Run the code for side-effects first
              (let [r     (-> `(^:once fn* [] ~mform)
-                             (ana.jvm/analyze (or env (ana.jvm/empty-env)))
+                             (ana.jvm/analyze (ana.jvm/empty-env))
                              (e/emit {:debug?       debug?
                                       :class-loader (or classloader
                                                         (clojure.lang.RT/makeClassLoader))}))
@@ -108,8 +107,7 @@
                                  ana/create-var    ana.jvm/create-var
                                  ana/parse         ana.jvm/parse
                                  ana/var?          var?]
-                         (ana.jvm/analyze mform
-                                          (or env (ana.jvm/empty-env))))]
+                         (ana.jvm/analyze mform (ana.jvm/empty-env)))]
 
                ;; Add to the accumulator for the whole read program
                ;;
