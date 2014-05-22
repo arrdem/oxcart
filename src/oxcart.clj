@@ -94,39 +94,36 @@
          ;;   ana.jvm/analyze invocation is required? I think the
          ;;   answer is no, but it'd be nice.
 
-         ;; FIXME: Closed over defs
-         ;;   This is gonna be invalid for a whole lot of code. Lambda
-         ;;   lifting is gonna come into play here methinks. I have to
-         ;;   get this working so that closed over defs are supported,
-         ;;   eg:
-         ;;
-         ;;   (let [x 3]
-         ;;     (def foo [y]
-         ;;          (+ x y)))
-         ;;
-         ;; This issue also impacts multimethods which are implemented
-         ;; with closed over defs.
-
-         (do (let [ast (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
-                                 ana/create-var    ana.jvm/create-var
-                                 ana/parse         ana.jvm/parse
-                                 ana/var?          var?]
-                         (ana.jvm/analyze mform
-                                          (or env (ana.jvm/empty-env))))]
-
-               ;; the accumulator for the whole read program
-               (when (and forms
-                          (atom? forms))
-                 (swap! forms conj ast)))
-
-             ;; and run the code for side-effects.
+         (do ;; Run the code for side-effects first
              (let [r     (-> `(^:once fn* [] ~mform)
                              (ana.jvm/analyze (or env (ana.jvm/empty-env)))
                              (e/emit {:debug?       debug?
                                       :class-loader (or classloader
                                                         (clojure.lang.RT/makeClassLoader))}))
                    class (-> r meta :class)]
-               (.invoke ^IFn (.newInstance ^Class class))))))))
+               (.invoke ^IFn (.newInstance ^Class class)))
+             
+             ;; Save the AST using (.name *ns*) to determine the module
+             (let [ast (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
+                                 ana/create-var    ana.jvm/create-var
+                                 ana/parse         ana.jvm/parse
+                                 ana/var?          var?]
+                         (ana.jvm/analyze mform
+                                          (or env (ana.jvm/empty-env))))]
+
+               ;; Add to the accumulator for the whole read program
+               ;;
+               ;; Builds a mapping of the form
+               (when (and forms
+                          (atom? forms))
+                 (swap! forms
+                        #(-> %1 
+                             (update-in [(.name *ns*) :forms] 
+                                        concat [ast])
+                             (update-in [:modules] 
+                                        (fn [x] 
+                                          (conj (or x #{}) 
+                                                (.name *ns*)))))))))))))
 
 
 (defn load
@@ -162,14 +159,14 @@
            reader (readers/indexing-push-back-reader file 1 p)]
        (binding [*ns*                 *ns*
                  *file*               p
-                 *load-configuration* options
-                 clojure.core/load    oxcart/load
-                 clojure.core/eval    oxcart/eval]
-         (loop []
-           (let [form (r/read reader false eof)]
-             (when (not= eof form)
-               (eval form options)
-               (recur))))))
+                 *load-configuration* options]
+         (with-redefs [clojure.core/load    oxcart/load
+                       clojure.core/eval    oxcart/eval]
+           (loop []
+             (let [form (r/read reader false eof)]
+               (when (not= eof form)
+                 (eval form options)
+                 (recur)))))))
      nil))
 
 
@@ -184,18 +181,22 @@
   config-map:
    `:passes` is a sequence of functions constituting an optimization
     configuration. These functions must be
-    (λ form-seq → settings → form-seq)
+    (λ ast → settings → ast)
     and pure. It is expected but not enforced that passes may not
     emit nodes which an emitter does not support. If passes is empty
     no program transformations will be done and the emitter will be
     invoked directly.
 
-    `:emitter` is a single function which is λ form-seq → nil which
-    is expected to emit the appropriate classfiles as side effects.
+    `:emitter` is a single function which is λ ast → settings → nil
+    which is expected to emit the appropriate classfiles as side
+    effects.
 
     `:settings` may be a map containing `:passes` and `:emitter`,
     these being option maps which will be applied respectively at the
-    invocation of each pass and the emitter."
+    invocation of each pass and the emitter.
+
+    `[:settings :entry]` is expected to be a fully qualified symbol,
+    being a -main method or other program entry point."
 
   ([res]
      ;; FIXME:
@@ -216,24 +217,9 @@
        ;; to generate the forms and defs structures.
        (load res config)
 
-       ;; The atoms now contain the whole analyzed program, apply
-       ;; program passes as updates over the entire AST. Updated ASTs
-       ;; are re-evaluated and the symbol to AST mapping rebuilt
-       ;; between each pass.
-       ;;
-       ;; FIXME: Implementation of method updates
-       ;;   It's worth discussing the correctness of this approach on
-       ;;   the mailing list.
        (let [settings (:passes settings)]
          (doseq [pass passes]
-           (swap! forms pass settings)
-
-           (let [eval-forms @forms]
-             (reset! forms [])
-
-             (doseq [form eval-forms]
-               (eval (:form form)
-                     config)))))
+           (swap! forms pass settings)))
 
        ;; Having taken an O(Nᵏ) compile operation to the face we now
        ;; run the emitter and call it quits.
