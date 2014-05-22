@@ -37,3 +37,25 @@
   [ast]
   (when (def? ast)
     (:name ast)))
+
+
+(defn public?
+  [form]
+  (-> form :meta :form :private false?))
+
+
+(defn private?
+  [form]
+  (-> form public? not))
+
+
+(defn const?
+  [form]
+  (case (-> form :meta :form :const)
+    (true nil) true
+    :else      false))
+
+
+(defn dynamic? 
+  [form]
+  (-> form :meta :form :dynamic true?))
