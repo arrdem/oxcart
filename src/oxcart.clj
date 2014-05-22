@@ -63,15 +63,12 @@
            (or *load-configuration*
                {:debug? false})))
 
-  ([form {:keys [debug? exec? ast env classloader]
-          :or   {exec? true
-                 debug? false}
-          :as options}]
-     (let [defs-ast  (:defs ast)
-           forms-ast (:forms ast)
-           mform     (binding [macroexpand-1 ana.jvm/macroexpand-1]
-                       (macroexpand form (or env
-                                             (ana.jvm/empty-env))))]
+  ([form {:keys [debug? exec? forms env classloader]
+          :or   {debug? false}
+          :as   options}]
+     (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
+                   (macroexpand form
+                                (or env (ana.jvm/empty-env))))]
 
        (if (and (seq? mform)
                 (= 'do (first mform)))
@@ -98,50 +95,38 @@
          ;;   answer is no, but it'd be nice.
 
          ;; FIXME: Closed over defs
-         ;;  This is gonna be invalid for a whole lot of code. Lambda
-         ;;  lifting is gonna come into play here methinks. I have to
-         ;;  get this working so that closed over defs are supported,
-         ;;  eg:
+         ;;   This is gonna be invalid for a whole lot of code. Lambda
+         ;;   lifting is gonna come into play here methinks. I have to
+         ;;   get this working so that closed over defs are supported,
+         ;;   eg:
          ;;
-         ;;  (let [x 3]
-         ;;    (def foo [y]
-         ;;         (+ x y)))
+         ;;   (let [x 3]
+         ;;     (def foo [y]
+         ;;          (+ x y)))
          ;;
          ;; This issue also impacts multimethods which are implemented
          ;; with closed over defs.
 
-         (let [ast   (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
-                               ana/create-var    ana.jvm/create-var
-                               ana/parse         ana.jvm/parse
-                               ana/var?          var?]
-                       (ana.jvm/analyze mform
-                                        (or env (ana.jvm/empty-env))))]
+         (do (let [ast (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
+                                 ana/create-var    ana.jvm/create-var
+                                 ana/parse         ana.jvm/parse
+                                 ana/var?          var?]
+                         (ana.jvm/analyze mform
+                                          (or env (ana.jvm/empty-env))))]
 
-           ;; the accumulator for the whole read program
-           (when (and forms-ast
-                      (atom? forms-ast))
-             (swap! forms-ast conj ast))
+               ;; the accumulator for the whole read program
+               (when (and forms
+                          (atom? forms))
+                 (swap! forms conj ast)))
 
-           ;; the accumulator for defs to structure
-           (when (and defs-ast
-                      (atom? defs-ast)
-                      (patern/def? ast))
-             (swap! defs-ast assoc
-                    (patern/def->symbol ast)
-                    ast))
-
-           ;; FIXME: Eval for side effects
-           ;;  Running code for side-effects may be something that I
-           ;;  need to conditionalize, see "Closed over defs"
-
-           ;; and run the code for side-effects.
-           (let [r     (-> `(^:once fn* [] ~mform)
-                           (ana.jvm/analyze (or env (ana.jvm/empty-env)))
-                           (e/emit {:debug?       debug?
-                                    :class-loader (or classloader
-                                                      (clojure.lang.RT/makeClassLoader))}))
-                 class (-> r meta :class)]
-             (.invoke ^IFn (.newInstance ^Class class))))))))
+             ;; and run the code for side-effects.
+             (let [r     (-> `(^:once fn* [] ~mform)
+                             (ana.jvm/analyze (or env (ana.jvm/empty-env)))
+                             (e/emit {:debug?       debug?
+                                      :class-loader (or classloader
+                                                        (clojure.lang.RT/makeClassLoader))}))
+                   class (-> r meta :class)]
+               (.invoke ^IFn (.newInstance ^Class class))))))))
 
 
 (defn load
@@ -159,18 +144,13 @@
     If config contains a :debug? key, then printing of the generated
     class bytecode and other development information is enabled.
 
-    If config contains an atom at [:ast :defs] the ASTs of all def
-    symbols will be assoc'd into that atom keyed on the symbol they
-    define. Multiple definitions will overwrite each other.
-
-    If config contains an atom at [:ast :forms] the ASTs of all read
-    forms will be conj'd to it in reading & evaluation order."
+    If config contains an atom at :forms the ASTs of all read forms
+    will be conj'd to it in reading & evaluation order."
 
   ([res]
      (load res
            (or *load-configuration*
-               {:debug? false
-                :exec?  true})))
+               {:debug? false})))
 
   ([res {:keys [debug?] :as options}]
      (let [p      (str (apply str (replace {\. \/ \- \_} res)) ".clj")
@@ -204,7 +184,7 @@
   config-map:
    `:passes` is a sequence of functions constituting an optimization
     configuration. These functions must be
-    (λ form-seq → def-map → settings → form-seq)
+    (λ form-seq → settings → form-seq)
     and pure. It is expected but not enforced that passes may not
     emit nodes which an emitter does not support. If passes is empty
     no program transformations will be done and the emitter will be
@@ -231,8 +211,7 @@
            defs  (atom {})
            config {:debug? false
                    :exec?  true
-                   :ast {:forms forms
-                         :defs defs}}]
+                   :forms forms}]
        ;; Loads and macroexpands all the code using the built config
        ;; to generate the forms and defs structures.
        (load res config)
@@ -247,11 +226,10 @@
        ;;   the mailing list.
        (let [settings (:passes settings)]
          (doseq [pass passes]
-           (swap! forms pass @defs settings)
+           (swap! forms pass settings)
 
            (let [eval-forms @forms]
              (reset! forms [])
-             (reset! defs  {})
 
              (doseq [form eval-forms]
                (eval (:form form)
