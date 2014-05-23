@@ -39,23 +39,25 @@
     (:name ast)))
 
 
-(defn public?
-  [form]
-  (-> form :meta :form :private false?))
-
-
 (defn private?
   [form]
-  (-> form public? not))
+  (let [status (-> form :meta :form :private)]
+    (cond (def? form)
+          (true? status)
+          :else true)))
 
 
-(defn const?
+(defn public?
   [form]
-  (case (-> form :meta :form :const)
-    (true nil) true
-    :else      false))
+  (-> form private? not))
 
 
 (defn dynamic? 
   [form]
   (-> form :meta :form :dynamic true?))
+
+(defn const?
+  [form]
+  (case (-> form :meta :form :const)
+    (true nil) (not (dynamic? form))
+    :else      false))
