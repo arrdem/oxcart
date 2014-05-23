@@ -64,7 +64,7 @@
   (-> form private? not))
 
 
-(defn dynamic? 
+(defn dynamic?
   "λ AST → bool
 
   Indicates whether the AST node passed as the argument is flagged as
