@@ -40,6 +40,12 @@
 
 
 (defn private?
+  "λ AST → bool
+
+  Indicates whether the AST node passed as an argument is flagged as
+  private. Definitions may be public or private, all other
+  values (constant expressions, function applications and soforth) are
+  defined to be private."
   [form]
   (let [status (-> form :meta :form :private)]
     (if (def? form)
@@ -48,16 +54,33 @@
 
 
 (defn public?
+  "λ AST → bool
+
+  Indicates whether the AST node passed as the first argument is
+  flagged as public. Definitions are public by default unless marked
+  private. All other values (constant expressions, function
+  applications and soforth) are defined to be private."
   [form]
   (-> form private? not))
 
 
 (defn dynamic? 
+  "λ AST → bool
+
+  Indicates whether the AST node passed as the argument is flagged as
+  dynamic. Dynamic status is not currently conditional on being a
+  definition, however this behavior is subject to change."
   [form]
   (-> form :meta :form :dynamic true?))
 
 
 (defn const?
+  "λ AST → bool
+
+  Indicates whether the AST node passed as the argument is flagged as
+  const. If the node is both const and dynamic, it is not const. An
+  error may be issued if this is ever the case as it represents a
+  contradiction in terms."
   [form]
   (case (-> form :meta :form :const)
     (true nil) (not (dynamic? form))
