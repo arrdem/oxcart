@@ -56,6 +56,7 @@
   [form]
   (-> form :meta :form :dynamic true?))
 
+
 (defn const?
   [form]
   (case (-> form :meta :form :const)
