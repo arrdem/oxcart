@@ -42,9 +42,9 @@
 (defn private?
   [form]
   (let [status (-> form :meta :form :private)]
-    (cond (def? form)
-          (true? status)
-          :else true)))
+    (if (def? form)
+      (true? status)
+      true)))
 
 
 (defn public?
