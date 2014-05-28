@@ -94,18 +94,8 @@
          ;;   ana.jvm/analyze invocation is required? I think the
          ;;   answer is no, but it'd be nice.
 
-         (do ;; Run the code for side-effects first
-             (let [r     (-> `(^:once fn* [] ~mform)
-                             (ana.jvm/analyze (ana.jvm/empty-env))
-                             (e/emit {:debug?       debug?
-                                      :class-loader (or classloader
-                                                        (clojure.lang.RT/makeClassLoader))}))
-                   class (-> r meta :class)]
-               (.invoke ^IFn (.newInstance ^Class class)))
-             
-             ;; Save the AST using (.name *ns*) to determine the module
+         (do ;; Save the AST using (.name *ns*) to determine the module
              (let [ast (util/ast mform)]
-
                ;; Add to the accumulator for the whole read program
                ;;
                ;; Builds a mapping of the form
@@ -113,12 +103,21 @@
                           (atom? forms))
                  (swap! forms
                         #(-> %1 
-                             (update-in [(.name *ns*) :forms] 
+                             (update-in [(.name *ns*) :forms]
                                         concat [ast])
-                             (update-in [:modules] 
-                                        (fn [x] 
-                                          (conj (or x #{}) 
-                                                (.name *ns*)))))))))))))
+                             (update-in [:modules]
+                                        (fn [x]
+                                          (conj (or x #{})
+                                                (.name *ns*))))))))
+
+             ;; Run the code for side-effects
+             (let [r     (-> `(^:once fn* [] ~mform)
+                             (ana.jvm/analyze (ana.jvm/empty-env))
+                             (e/emit {:debug?       debug?
+                                      :class-loader (or classloader
+                                                        (clojure.lang.RT/makeClassLoader))}))
+                   class (-> r meta :class)]
+               (.invoke ^IFn (.newInstance ^Class class))))))))
 
 
 (defn load
