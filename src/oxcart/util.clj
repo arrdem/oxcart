@@ -36,7 +36,3 @@
        (-> (binding [macroexpand-1 ana.jvm/macroexpand-1]
              (macroexpand form env))
            (ana.jvm/analyze env)))))
-
-
-(defmacro ast' [mform]
-  (ast (quote form)))
