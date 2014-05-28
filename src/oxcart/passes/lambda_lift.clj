@@ -186,6 +186,7 @@
                                                update-bindings
                                                lift-and-pop-bindings)]
            (conj @defs new-ast)))
+       (reduce concat)
        (assoc module :forms)))
 
 
