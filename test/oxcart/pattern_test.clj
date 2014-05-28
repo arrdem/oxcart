@@ -1,5 +1,5 @@
 (ns oxcart.pattern-test
-  (:require [oxcart.pattern :refer :all]
+  (:require [oxcart.pattern :as p]
             [oxcart.test-util :refer :all]
             [clojure.test :refer :all]))
 
@@ -19,14 +19,14 @@
    (fn [] 1)))
 
 (deftest def?-tests
-  (is (def? foo))
-  (is (def? bar))
-  (is-not (def? fail)))
+  (is (p/def? foo))
+  (is (p/def? bar))
+  (is-not (p/def? fail)))
 
 (deftest def->symbol-tests
-  (is (= 'foo (def->symbol foo)))
-  (is (= 'bar (def->symbol bar)))
-  (is (nil? (def->symbol fail))))
+  (is (= 'foo (p/def->symbol foo)))
+  (is (= 'bar (p/def->symbol bar)))
+  (is (nil? (p/def->symbol fail))))
 
 (def private-defn
   (ast
@@ -39,16 +39,16 @@
      (fn [x] (mod x 2)))))
 
 (deftest public?-tests
-  (is (public? foo))
-  (is (public? bar))
-  (is-not (public? fail))
-  (is-not (public? private-defn)))
+  (is (p/public? foo))
+  (is (p/public? bar))
+  (is-not (p/public? fail))
+  (is-not (p/public? private-defn)))
 
 (deftest private?-tests
-  (is (private? private-defn))
-  (is (private? private-def))
-  (is-not (private? foo))
-  (is-not (private? bar)))
+  (is (p/private? private-defn))
+  (is (p/private? private-def))
+  (is-not (p/private? foo))
+  (is-not (p/private? bar)))
 
 (def dynamic-defn
   (ast
@@ -60,13 +60,13 @@
    (def ^:dynamic *foo* nil)))
 
 (deftest dynamic?-test
-  (is (dynamic? dynamic-defn))
-  (is (dynamic? dynamic-def))
-  (is-not (dynamic? private-defn))
-  (is-not (dynamic? private-def))
-  (is-not (dynamic? foo))
-  (is-not (dynamic? bar))
-  (is-not (dynamic? fail)))
+  (is (p/dynamic? dynamic-defn))
+  (is (p/dynamic? dynamic-def))
+  (is-not (p/dynamic? private-defn))
+  (is-not (p/dynamic? private-def))
+  (is-not (p/dynamic? foo))
+  (is-not (p/dynamic? bar))
+  (is-not (p/dynamic? fail)))
 
 (def const-defn
   (ast
@@ -79,9 +79,9 @@
      (fn [x] (- x 2)))))
 
 (deftest const?-tests
-  (is (const? const-defn))
-  (is (const? const-def))
-  (is (const? private-defn))
-  (is (const? private-def))
-  (is-not (const? dynamic-defn))
-  (is-not (const? dynamic-def)))
+  (is (p/const? const-defn))
+  (is (p/const? const-def))
+  (is (p/const? private-defn))
+  (is (p/const? private-def))
+  (is-not (p/const? dynamic-defn))
+  (is-not (p/const? dynamic-def)))
