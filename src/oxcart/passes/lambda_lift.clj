@@ -106,7 +106,8 @@
                                       (rewrite-fn* used-locals)))
               partial-form `(partial ~(symbol sym) ~@used-locals)
               def-ast      (util/ast def-form)
-              partial-ast  (util/ast partial-form)]
+              partial-ast  (util/ast partial-form
+                                     (:env ast))]
 
           (println def-form)
 
