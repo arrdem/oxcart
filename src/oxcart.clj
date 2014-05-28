@@ -18,6 +18,7 @@
                      macroexpand]
              :as ana]
             [clojure.tools.emitter.jvm.emit :as e]
+            [clojure.tools.emitter.jvm :as em.jvm]
             [clojure.java.io :as io]
             [clojure.string :as s]
             [clojure.tools.reader :as r]
@@ -111,13 +112,7 @@
                                                 (.name *ns*))))))))
 
              ;; Run the code for side-effects
-             (let [r     (-> `(^:once fn* [] ~mform)
-                             (ana.jvm/analyze (ana.jvm/empty-env))
-                             (e/emit {:debug?       debug?
-                                      :class-loader (or classloader
-                                                        (clojure.lang.RT/makeClassLoader))}))
-                   class (-> r meta :class)]
-               (.invoke ^IFn (.newInstance ^Class class))))))))
+             (em.jvm/eval mform))))))
 
 
 (defn load
