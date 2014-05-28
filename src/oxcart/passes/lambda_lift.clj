@@ -83,7 +83,6 @@
 
 (defn rewrite-fn*
   [form locals]
-  (println "Rewriting " form locals)
   (let [bodies (rest form)]
     `(fn* ~@(for [[params & body] bodies]
               `([~@locals ~@params]
@@ -105,11 +104,8 @@
                                       (fn*->cannonical-fn*)
                                       (rewrite-fn* used-locals)))
               partial-form `(partial ~(symbol sym) ~@used-locals)
-              def-ast      (util/ast def-form)
-              partial-ast  (util/ast partial-form
-                                     (:env ast))]
-
-          (println def-form)
+              def-ast      (util/ast def-form     (:env ast))
+              partial-ast  (util/ast partial-form (:env ast))]
 
           ;; create the new def
           (swap! defs-atom conj def-ast)
@@ -211,7 +207,6 @@
   [{:keys [modules] :as ast} options]
   (->> (for [module modules]
          (binding [*ns* module]
-           (println "Lifting lambdas in module" module)
            [module (lift-lambdas-in-module (get ast module))]))
        (into {})
        (merge ast)))
