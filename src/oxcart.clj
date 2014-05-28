@@ -22,6 +22,7 @@
             [clojure.string :as s]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as readers]
+            [oxcart.util :as util]
             [oxcart.pattern :as patern])
   (:import clojure.lang.IFn))
 
@@ -103,11 +104,7 @@
                (.invoke ^IFn (.newInstance ^Class class)))
              
              ;; Save the AST using (.name *ns*) to determine the module
-             (let [ast (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
-                                 ana/create-var    ana.jvm/create-var
-                                 ana/parse         ana.jvm/parse
-                                 ana/var?          var?]
-                         (ana.jvm/analyze mform (ana.jvm/empty-env)))]
+             (let [ast (util/ast mform)]
 
                ;; Add to the accumulator for the whole read program
                ;;
