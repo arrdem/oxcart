@@ -58,7 +58,8 @@
 
 (defn lift-fns
   [defs-atom ast]
-  (cond (pattern/fn? ast)
+  (cond (and (pattern/fn? ast)
+             (not (pattern/top-level? ast)))
         ;; lift to a new def, creating a binding and inserting a
         ;; partial expression in its place
 
@@ -89,6 +90,20 @@
         ast))
 
 
+(defn push-down-top-level
+  "Helper pass which serves to push down the :top-level annotation to
+  the direct children of top level forms. This allows the lambda
+  lifting operation to escape lifting (def* (fn*)) forms recursively
+  forever."
+  [ast]
+  (if (pattern/top-level? ast)
+    (ast/update-children
+     ast
+     (fn [node]
+       (assoc node :top-level true)))
+    ast))
+
+
 (defn lift-lambdas-in-module
   "λ Module → Module
 
@@ -100,6 +115,7 @@
          (let [defs    (atom [])
                new-ast (-> form
                            (collect-closed-overs {:what #{:closed-overs} :where #{:fn}})
+                           (push-down-top-level)
                            (ast/prewalk (partial lift-fns defs)))]
            (conj @defs new-ast)))
        (reduce concat)
