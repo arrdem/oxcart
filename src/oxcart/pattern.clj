@@ -128,6 +128,7 @@
   (when (invoke? ast)
     (-> ast :fn)))
 
+
 (defn private?
   "λ AST → bool
 
