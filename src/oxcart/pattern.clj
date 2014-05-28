@@ -73,6 +73,14 @@
   (-> ast :op (= :let)))
 
 
+(defn letfn?
+  "λ AST → Boolean
+
+  Indicates whether the argument form is a letfn."
+  [ast]
+  (-> ast :op (= :letfn)))
+
+
 (defn binding?
   "λ AST → Boolean
 
