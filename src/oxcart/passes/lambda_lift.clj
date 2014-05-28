@@ -13,44 +13,11 @@
    :added "0.0.3"
    :author "Reid McKenzie"}
   (:require [oxcart.util :as util]
-            [oxcart.bindings :as b]
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
+            [clojure.tools.analyzer.passes.collect 
+             :refer [collect-closed-overs]]
             [clojure.set :refer [union]]))
-
-
-;; Using this binding structure we can now push symbols onto a virtual
-;; stack, check to see how far back up the virtual stack a symbol is
-;; bound and life should be good as a result.
-;;
-;; Lambda lifting is now a recursive traverse building a bindings
-;; tree, while finding pattern/fn? nodes which we have to rewrite to
-;; eliminated closed over variables as implicit aruments and add them
-;; to the parameters list.
-
-
-(defn collect-used-locals
-  "λ Bindings → level → AST → (Set Symbol)
-
-  Walks the argument AST recursively, building and retaining the
-  appropriate bindings stack. Returns the set of used locals which are
-  bound above the `level` value."
-  [bindings level ast]
-  (->> (for [child (ast/children ast)]
-         (collect-used-locals bindings level child))
-
-       ;; Union the nested sets
-       (reduce union)
-
-       ;; Union with the local sets
-       (union
-        (->> (ast/children ast)
-             (filter pattern/local?)
-             (filter #(b/get-level
-                       bindings
-                       (pattern/local->symbol %1)))
-             (map :form)
-             (reduce conj #{})))))
 
 
 (defn fn->name-or-gensym
@@ -89,15 +56,13 @@
                   ~@body)))))
 
 
-(defn rewrite-helper
-  [bindings-atom defs-atom ast]
+(defn lift-fns
+  [defs-atom ast]
   (cond (pattern/fn? ast)
         ;; lift to a new def, creating a binding and inserting a
         ;; partial expression in its place
 
-        (let [bindings     @bindings-atom
-              depth        (b/depth bindings)
-              used-locals  (collect-used-locals bindings depth ast)
+        (let [used-locals  (map :form (vals (:closed-overs ast)))
               sym          (fn->name-or-gensym ast)
               def-form     `(def ~(symbol sym)
                                  ~(-> (:form ast)
@@ -110,21 +75,8 @@
           ;; create the new def
           (swap! defs-atom conj def-ast)
 
-          ;; save the partial for later use
-          (swap! bindings-atom b/bind sym partial-ast)
-
           ;; and yield the partial form
           partial-ast)
-
-
-        (pattern/binding? ast)
-        ;; As bindings are applied sequentially (with one exception)
-        ;; rather than special casing the management of binding frames
-        ;; just accumulate bindings sequentially by terms.
-        (do (swap! bindings-atom b/bind
-                   (pattern/binding->symbol ast)
-                   (pattern/binding->value ast))
-            ast)
 
 
         ;; FIXME:
@@ -137,28 +89,6 @@
         ast))
 
 
-(defn on-enter
-  "Helper function for lift-lambdas that implements the prewalk and
-  update step of the AST walk operation."
-  [bindings-atom defs-atom ast]
-  ;; FIXME:
-  ;;   support letfn
-  (when (or (pattern/let? ast)
-            (pattern/fn-method? ast))
-    (swap! bindings-atom b/push-bindings))
-  (rewrite-helper bindings-atom defs-atom ast))
-
-
-(defn on-exit
-  [bindings-atom defs-atom ast]
-  ;; FIXME:
-  ;;    support letfn
-  (when (or (pattern/let? ast)
-            (pattern/fn-method? ast))
-    (swap! bindings-atom b/pop-bindings))
-  ast)
-
-
 (defn lift-lambdas-in-module
   "λ Module → Module
 
@@ -167,13 +97,10 @@
   level forms list."
   [{:keys [forms] :as module}]
   (->> (for [form forms]
-         (let [bindings              (atom {})
-               defs                  (atom [])
-               update-bindings       (partial on-enter bindings defs)
-               lift-and-pop-bindings (partial on-exit bindings defs)
-               new-ast               (ast/walk form
-                                               update-bindings
-                                               lift-and-pop-bindings)]
+         (let [defs    (atom [])
+               new-ast (-> form
+                           (collect-closed-overs {:what #{:closed-overs} :where #{:fn}})
+                           (ast/prewalk (partial lift-fns defs)))]
            (conj @defs new-ast)))
        (reduce concat)
        (assoc module :forms)))
