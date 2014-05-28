@@ -8,6 +8,10 @@
 ;;   notice, or any other, from this software.
 
 (ns oxcart.util
+  {:doc "Implements various AST utilities common to different parts of
+        Oxcart."
+   :added "0.0.4"
+   :author "Reid McKenzie"}
   (:refer-clojure :exclude [macroexpand-1 macroexpand])
   (:require [clojure.tools.analyzer.jvm :as ana.jvm]
             [clojure.tools.analyzer
@@ -15,7 +19,12 @@
                      macroexpand]
              :as ana]))
 
-(defn ast 
+(defn ast
+  "λ Form → AST
+   λ Form → Env → AST
+
+  Wraps the clojure.tools.analyzer.jvm analysis system to provide
+  reading and analysis of JVM Clojure forms in a user concise fashion."
   ([form]
      (ast form (ana.jvm/empty-env)))
 
