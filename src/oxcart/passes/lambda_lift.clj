@@ -19,7 +19,6 @@
             [clojure.set :refer [union]]))
 
 
-
 ;; Using this binding structure we can now push symbols onto a virtual
 ;; stack, check to see how far back up the virtual stack a symbol is
 ;; bound and life should be good as a result.
