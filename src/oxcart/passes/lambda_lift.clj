@@ -117,17 +117,6 @@
           partial-ast)
 
 
-        (pattern/local? ast)
-        ;; determine whether the value is a lifted lambda, (meaning
-        ;; that it's binding value is not nil)
-        (let [bindings @bindings-atom
-              sym      (pattern/local->symbol ast)
-              value    (b/get-value bindings sym)]
-          (if (nil? value)
-            ast
-            value))
-
-
         (pattern/binding? ast)
         ;; As bindings are applied sequentially (with one exception)
         ;; rather than special casing the management of binding frames
