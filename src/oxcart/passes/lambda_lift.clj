@@ -101,10 +101,11 @@
               depth        (b/depth bindings)
               used-locals  (collect-used-locals bindings depth ast)
               sym          (fn->name-or-gensym ast)
-              def-form     `(def ~sym ~(-> (:form ast)
-                                           (fn*->cannonical-fn*)
-                                           (rewrite-fn* used-locals)))
-              partial-form `(partial ~sym ~@used-locals)
+              def-form     `(def ~(symbol sym)
+                                 ~(-> (:form ast)
+                                      (fn*->cannonical-fn*)
+                                      (rewrite-fn* used-locals)))
+              partial-form `(partial ~(symbol sym) ~@used-locals)
               def-ast      (util/ast def-form)
               partial-ast  (util/ast partial-form)]
 
