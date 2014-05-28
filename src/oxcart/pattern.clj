@@ -40,6 +40,14 @@
     (:name ast)))
 
 
+(defn top-level?
+  "λ AST → Boolean
+
+  Indicates whether the argument AST is a top level form."
+  [ast]
+  (:top-level ast))
+
+
 (defn fn?
   "λ AST → Boolean
 
