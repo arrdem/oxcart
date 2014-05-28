@@ -12,7 +12,7 @@
         def analysis."
    :added "0.0.3"
    :author "Reid McKenzie"}
-  (:require [oxcart.util :refer [ast]]
+  (:require [oxcart.util :as util]
             [oxcart.bindings :as b]
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
@@ -105,8 +105,8 @@
                                            (fn*->cannonical-fn*)
                                            (rewrite-fn* used-locals)))
               partial-form `(partial ~sym ~@used-locals)
-              def-ast      (ast def-form)
-              partial-ast  (ast partial-form)]
+              def-ast      (util/ast def-form)
+              partial-ast  (util/ast partial-form)]
 
           (println def-form)
 
