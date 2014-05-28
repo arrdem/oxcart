@@ -15,14 +15,18 @@
                      macroexpand]
              :as ana]))
 
-(defn ast [form]
-  (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
-            ana/create-var    ana.jvm/create-var
-            ana/parse         ana.jvm/parse
-            ana/var?          var?]
-    (-> (binding [macroexpand-1 ana.jvm/macroexpand-1]
-          (macroexpand form (ana.jvm/empty-env)))
-        (ana.jvm/analyze (ana.jvm/empty-env)))))
+(defn ast 
+  ([form]
+     (ast form (ana.jvm/empty-env)))
+
+  ([form env]
+     (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
+               ana/create-var    ana.jvm/create-var
+               ana/parse         ana.jvm/parse
+               ana/var?          var?]
+       (-> (binding [macroexpand-1 ana.jvm/macroexpand-1]
+             (macroexpand form env))
+           (ana.jvm/analyze env)))))
 
 
 (defmacro ast' [mform]
