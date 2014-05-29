@@ -1,102 +1,101 @@
 (ns oxcart.pattern-test
-  (:refer-clojure :exclude [macroexpand-1 macroexpand])
-  (:require [oxcart.pattern :refer :all]
-            [clojure.test :refer :all]
-            [clojure.tools.analyzer.jvm :as ana.jvm]
-            [clojure.tools.analyzer
-             :refer [macroexpand-1
-                     macroexpand]
-             :as ana]))
+  (:require [oxcart.pattern :as p]
+            [oxcart.test-util :refer :all]
+            [clojure.test :refer :all]))
 
-(defmacro is-not [form]
-  `(is (not ~form)))
-
-(defmacro ast [mform]
-  `(binding [ana/macroexpand-1 ana.jvm/macroexpand-1
-             ana/create-var    ana.jvm/create-var
-             ana/parse         ana.jvm/parse
-             ana/var?          var?]
-     (ana.jvm/analyze (quote ~mform)
-                      (ana.jvm/empty-env))))
 
 (def foo
   (ast
    (defn foo [x]
      (inc x))))
 
+
 (def bar
   (ast
    (def bar
      (fn [x] (dec x)))))
 
+
 (def fail
   (ast
    (fn [] 1)))
 
+
 (deftest def?-tests
-  (is (def? foo))
-  (is (def? bar))
-  (is-not (def? fail)))
+  (is (p/def? foo))
+  (is (p/def? bar))
+  (is-not (p/def? fail)))
+
 
 (deftest def->symbol-tests
-  (is (= 'foo (def->symbol foo)))
-  (is (= 'bar (def->symbol bar)))
-  (is (nil? (def->symbol fail))))
+  (is (= 'foo (p/def->symbol foo)))
+  (is (= 'bar (p/def->symbol bar)))
+  (is (nil? (p/def->symbol fail))))
+
 
 (def private-defn
   (ast
    (defn ^:private baz [x]
      (* x x))))
 
+
 (def private-def
   (ast
    (def ^:private quxx
      (fn [x] (mod x 2)))))
 
+
 (deftest public?-tests
-  (is (public? foo))
-  (is (public? bar))
-  (is-not (public? fail))
-  (is-not (public? private-defn)))
+  (is (p/public? foo))
+  (is (p/public? bar))
+  (is-not (p/public? fail))
+  (is-not (p/public? private-defn)))
+
 
 (deftest private?-tests
-  (is (private? private-defn))
-  (is (private? private-def))
-  (is-not (private? foo))
-  (is-not (private? bar)))
+  (is (p/private? private-defn))
+  (is (p/private? private-def))
+  (is-not (p/private? foo))
+  (is-not (p/private? bar)))
+
 
 (def dynamic-defn
   (ast
    (defn ^:dynamic fred [x]
      (rand-int (mod x 4)))))
 
+
 (def dynamic-def
   (ast
    (def ^:dynamic *foo* nil)))
 
+
 (deftest dynamic?-test
-  (is (dynamic? dynamic-defn))
-  (is (dynamic? dynamic-def))
-  (is-not (dynamic? private-defn))
-  (is-not (dynamic? private-def))
-  (is-not (dynamic? foo))
-  (is-not (dynamic? bar))
-  (is-not (dynamic? fail)))
+  (is (p/dynamic? dynamic-defn))
+  (is (p/dynamic? dynamic-def))
+  (is-not (p/dynamic? private-defn))
+  (is-not (p/dynamic? private-def))
+  (is-not (p/dynamic? foo))
+  (is-not (p/dynamic? bar))
+  (is-not (p/dynamic? fail)))
+
 
 (def const-defn
   (ast
    (defn ^:const corge [x]
      (/ x x))))
 
+
 (def const-def
   (ast
    (def ^:const grault
      (fn [x] (- x 2)))))
 
+
 (deftest const?-tests
-  (is (const? const-defn))
-  (is (const? const-def))
-  (is (const? private-defn))
-  (is (const? private-def))
-  (is-not (const? dynamic-defn))
-  (is-not (const? dynamic-def)))
+  (is (p/const? const-defn))
+  (is (p/const? const-def))
+  (is (p/const? private-defn))
+  (is (p/const? private-def))
+  (is-not (p/const? dynamic-defn))
+  (is-not (p/const? dynamic-def)))

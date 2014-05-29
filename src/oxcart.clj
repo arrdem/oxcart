@@ -18,10 +18,12 @@
                      macroexpand]
              :as ana]
             [clojure.tools.emitter.jvm.emit :as e]
+            [clojure.tools.emitter.jvm :as em.jvm]
             [clojure.java.io :as io]
             [clojure.string :as s]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as readers]
+            [oxcart.util :as util]
             [oxcart.pattern :as patern])
   (:import clojure.lang.IFn))
 
@@ -93,22 +95,8 @@
          ;;   ana.jvm/analyze invocation is required? I think the
          ;;   answer is no, but it'd be nice.
 
-         (do ;; Run the code for side-effects first
-             (let [r     (-> `(^:once fn* [] ~mform)
-                             (ana.jvm/analyze (ana.jvm/empty-env))
-                             (e/emit {:debug?       debug?
-                                      :class-loader (or classloader
-                                                        (clojure.lang.RT/makeClassLoader))}))
-                   class (-> r meta :class)]
-               (.invoke ^IFn (.newInstance ^Class class)))
-             
-             ;; Save the AST using (.name *ns*) to determine the module
-             (let [ast (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
-                                 ana/create-var    ana.jvm/create-var
-                                 ana/parse         ana.jvm/parse
-                                 ana/var?          var?]
-                         (ana.jvm/analyze mform (ana.jvm/empty-env)))]
-
+         (do ;; Save the AST using (.name *ns*) to determine the module
+             (let [ast (util/ast mform)]
                ;; Add to the accumulator for the whole read program
                ;;
                ;; Builds a mapping of the form
@@ -116,12 +104,15 @@
                           (atom? forms))
                  (swap! forms
                         #(-> %1 
-                             (update-in [(.name *ns*) :forms] 
+                             (update-in [(.name *ns*) :forms]
                                         concat [ast])
-                             (update-in [:modules] 
-                                        (fn [x] 
-                                          (conj (or x #{}) 
-                                                (.name *ns*)))))))))))))
+                             (update-in [:modules]
+                                        (fn [x]
+                                          (conj (or x #{})
+                                                (.name *ns*))))))))
+
+             ;; Run the code for side-effects
+             (em.jvm/eval mform))))))
 
 
 (defn load
