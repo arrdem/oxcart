@@ -15,6 +15,8 @@
   (:require [oxcart.util :as util]
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
+            [clojure.tools.analyzer.passes.jvm.emit-form :refer [emit-form]]
+            [clojure.tools.analyzer.jvm :refer [update-ns-map!]]
             [clojure.tools.analyzer.passes.collect
              :refer [collect-closed-overs]]
             [clojure.set :refer [union]]))
@@ -49,7 +51,7 @@
 (defn rewrite-locals-to-vars
   [mapping ast]
   (if (pattern/local? ast)
-    (get mapping (pattern/binding->symbol ast) ast)
+    (get @mapping (:name ast) ast)
     ast))
 
 
@@ -63,11 +65,11 @@
         (let [used-locals  (map :form (vals (:closed-overs ast)))
               sym          (pattern/fn->name ast)
               def-form     `(def ~(symbol sym)
-                                 ~(-> (:form ast)
-                                      fn*->cannonical-fn*
-                                      (rewrite-fn* used-locals)))
+                              ~(-> (emit-form ast)
+                                 fn*->cannonical-fn*
+                                 (rewrite-fn* used-locals)))
               partial-form `(partial ~(symbol sym) ~@used-locals)
-              def-ast      (util/ast def-form     (:env ast))
+              def-ast      (util/ast def-form     (update-ns-map! (:env ast)))
               partial-ast  (util/ast partial-form (:env ast))]
 
           ;; create the new def
@@ -99,7 +101,7 @@
         ;;    all the locals of the body expression.
 
         (let [bindings     (:bindings ast)
-              locals->vars (transient {})]
+              locals->vars (atom {})]
 
           ;; create the forward defs
           (doseq [b bindings]
@@ -115,7 +117,7 @@
               (swap! defs-atom conj def-ast)
 
               ;; save the var ast
-              (assoc! locals->vars (pattern/binding->symbol b) ret)))
+              (swap! locals->vars assoc (pattern/binding->symbol b) ret)))
 
           (-> ast
               (assoc :bindings (mapv #(ast/prewalk %1
