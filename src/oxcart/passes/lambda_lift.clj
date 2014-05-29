@@ -51,7 +51,7 @@
 (defn rewrite-locals-to-vars
   [mapping ast]
   (if (pattern/local? ast)
-    (get @mapping (:name ast) ast)
+    (get mapping (:name ast) ast)
     ast))
 
 
@@ -122,7 +122,7 @@
           (-> ast
               (assoc :bindings (mapv #(ast/prewalk %1
                                         (partial rewrite-locals-to-vars
-                                                 locals->vars))
+                                                 @locals->vars))
                                      bindings))
 
               (collect-closed-overs {:what #{:closed-overs} :where #{:fn}})
