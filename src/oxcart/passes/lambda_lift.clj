@@ -15,19 +15,9 @@
   (:require [oxcart.util :as util]
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
-            [clojure.tools.analyzer.passes.collect 
+            [clojure.tools.analyzer.passes.collect
              :refer [collect-closed-overs]]
             [clojure.set :refer [union]]))
-
-
-(defn fn->name-or-gensym
-  "λ AST → (Option Symbol)
-
-  If the argument AST is a fn, attempts to return the internal name of
-  the fn defaulting to a freshly generated symbol."
-  [ast]
-  (when (pattern/fn? ast)
-    (-> ast :internal-name)))
 
 
 (defn take-when
@@ -56,6 +46,13 @@
                   ~@body)))))
 
 
+(defn rewrite-locals-to-vars
+  [mapping ast]
+  (if (pattern/local? ast)
+    (get mapping (pattern/binding->symbol ast) ast)
+    ast))
+
+
 (defn lift-fns
   [defs-atom ast]
   (cond (and (pattern/fn? ast)
@@ -64,10 +61,10 @@
         ;; partial expression in its place
 
         (let [used-locals  (map :form (vals (:closed-overs ast)))
-              sym          (fn->name-or-gensym ast)
+              sym          (pattern/fn->name ast)
               def-form     `(def ~(symbol sym)
                                  ~(-> (:form ast)
-                                      (fn*->cannonical-fn*)
+                                      fn*->cannonical-fn*
                                       (rewrite-fn* used-locals)))
               partial-form `(partial ~(symbol sym) ~@used-locals)
               def-ast      (util/ast def-form     (:env ast))
@@ -80,8 +77,57 @@
           partial-ast)
 
 
-        ;; FIXME:
-        ;;    support letfn
+        (pattern/letfn? ast)
+        ;; letfns are weird and hard because they need to be rewritten
+        ;; into lets and a declare form. The fns are already correctly
+        ;; promoted to defs and replaced with partials, so if the
+        ;; naming of lifted letfn fns can be resolved it will be
+        ;; correct to simply rewrite letfn forms to lets with partials
+        ;; as the partials are ording insensitive.
+        ;;
+        ;; 1. Create a mapping from letfn bound fn names to the
+        ;;    internal (de-aliased) fn names.
+        ;;
+        ;; 2. Create a (declare <fns>) in the defs atom.
+        ;;
+        ;; 3. For each fn in the letfn rewrite the letfn bodies using
+        ;;    the mapping from 1 and emit lifted defs as would be
+        ;;    normal for lambda lifting.
+        ;;
+        ;; 4. Replace the letfn* with a simple let* that binds the
+        ;;    partials appropriately so that I don't have to rewrite
+        ;;    all the locals of the body expression.
+
+        (let [bindings     (:bindings ast)
+              locals->vars (transient {})]
+
+          ;; create the forward defs
+          (doseq [b bindings]
+            (let [sym (-> b
+                          pattern/binding->value 
+                          pattern/fn->name
+                          symbol)
+                  {:keys [statements ret]} (util/ast `(do (def ~sym)
+                                                    ~sym))
+                  def-ast (first statements)]
+
+              ;; save the def ast
+              (swap! defs-atom conj def-ast)
+
+              ;; save the var ast
+              (assoc! locals->vars (pattern/binding->symbol b) ret)))
+
+          (-> ast
+              (assoc :bindings (mapv #(ast/prewalk %1
+                                        (partial rewrite-locals-to-vars
+                                                 locals->vars))
+                                     bindings))
+
+              (collect-closed-overs {:what #{:closed-overs} :where #{:fn}})
+
+              ;; force to a let form
+              (assoc :op :let)))
+
 
         true
         ;; This operation is a noop. Note that we do not need to
