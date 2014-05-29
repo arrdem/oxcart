@@ -65,8 +65,8 @@
               sym          (pattern/fn->name ast)
               def-form     `(def ~(symbol sym)
                               ~(-> (emit-form ast)
-                                 fn*->cannonical-fn*
-                                 (rewrite-fn* used-locals)))
+                                   fn*->cannonical-fn*
+                                   (rewrite-fn* used-locals)))
               partial-form `(partial ~(symbol sym) ~@used-locals)
               def-ast      (util/ast def-form     (:env ast))
               partial-ast  (util/ast partial-form (:env ast))]
