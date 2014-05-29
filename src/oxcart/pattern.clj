@@ -56,6 +56,16 @@
   (-> ast :op (= :fn)))
 
 
+(defn fn->name
+  "λ AST → (Option Symbol)
+
+  If the argument AST is a fn, attempts to return the internal name of
+  the fn defaulting to a freshly generated symbol."
+  [ast]
+  (when (fn? ast)
+    (-> ast :internal-name)))
+
+
 (defn fn-method?
   "λ AST → Boolean
 
@@ -89,24 +99,6 @@
   (-> ast :op (= :binding)))
 
 
-(defn local?
-  "λ AST → Boolean
-
-  Indicates whether the argument form is a local node."
-  [ast]
-  (-> ast :op (= :local)))
-
-
-(defn local->symbol
-  "λ AST → (Option symbol)
-
-  If the argument AST was a local node, then this operation returns
-  the name field otherwise nil."
-  [ast]
-  (when (local? ast)
-    (:name ast)))
-
-
 (defn binding->symbol
   "λ AST → (Option Symbol)
 
@@ -125,6 +117,24 @@
   [ast]
   (when (binding? ast)
     (-> ast :init)))
+
+
+(defn local?
+  "λ AST → Boolean
+
+  Indicates whether the argument form is a local node."
+  [ast]
+  (-> ast :op (= :local)))
+
+
+(defn local->symbol
+  "λ AST → (Option symbol)
+
+  If the argument AST was a local node, then this operation returns
+  the name field otherwise nil."
+  [ast]
+  (when (local? ast)
+    (:name ast)))
 
 
 (defn invoke?
