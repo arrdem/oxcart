@@ -29,4 +29,5 @@
   [{:keys [modules] :as whole-ast} options]
   (->> whole-ast
        util/whole-ast->forms
-       (map emit/emit-form)))
+       (map emit/emit-form)
+       (cons 'do)))
