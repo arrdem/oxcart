@@ -16,7 +16,6 @@
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
             [clojure.tools.analyzer.passes.jvm.emit-form :refer [emit-form]]
-            [clojure.tools.analyzer.jvm :refer [update-ns-map!]]
             [clojure.tools.analyzer.passes.collect
              :refer [collect-closed-overs]]
             [clojure.set :refer [union]]))
@@ -69,7 +68,7 @@
                                  fn*->cannonical-fn*
                                  (rewrite-fn* used-locals)))
               partial-form `(partial ~(symbol sym) ~@used-locals)
-              def-ast      (util/ast def-form     (update-ns-map! (:env ast)))
+              def-ast      (util/ast def-form     (:env ast))
               partial-ast  (util/ast partial-form (:env ast))]
 
           ;; create the new def
@@ -101,7 +100,8 @@
         ;;    all the locals of the body expression.
 
         (let [bindings     (:bindings ast)
-              locals->vars (atom {})]
+              locals->vars (atom {})
+              env          (:env ast)]
 
           ;; create the forward defs
           (doseq [b bindings]
@@ -110,7 +110,8 @@
                           pattern/fn->name
                           symbol)
                   {:keys [statements ret]} (util/ast `(do (def ~sym)
-                                                    ~sym))
+                                                          ~sym)
+                                                     env)
                   def-ast (first statements)]
 
               ;; save the def ast
