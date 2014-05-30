@@ -80,9 +80,17 @@
 
 (defn rewrite-closed-overs
   [mapping binding]
-  (let [name (pattern/binding->symbol binding)]
-    (assoc-in binding [:init :closed-overs] (get mapping name))))
-
+  {:pre [(map? mapping)
+         (pattern/binding? binding)]}
+  (assert (pattern/binding? binding))
+  (let [name         (pattern/binding->symbol binding)
+        closed-overs (get mapping name)]
+    (assoc-in binding [:init :closed-overs]
+              (->> (for [[l le] (:locals (:env binding))
+                         :when (contains? closed-overs
+                                          (:name le))]
+                     [l le])
+                   (into {})))))
 
 
 (defn lift-fns
@@ -179,11 +187,9 @@
                    (fix merge-deps
                         locals->closed-overs)))
 
-          (println @locals->closed-overs)
-
           (let [;; rewrite the bindings to share closed-over information
                 bindings' (mapv (partial rewrite-closed-overs
-                                         locals->closed-overs)
+                                         @locals->closed-overs)
                                 bindings)
 
                 fns       (zipmap (map pattern/binding->symbol bindings')
@@ -191,19 +197,17 @@
 
                 ;; compute the mapping from symbols to partial applications
                 fns'      (map-vals fns
-                                    (partial lift-fns defs-atom))]
-            (println fns')
+                                    (partial lift-fns (atom [])))]
 
             (-> ast
                 (assoc :bindings (->> bindings'
-                                      (mapv (fn [binding]
-                                              (ast/prewalk binding
-                                                           (partial rewrite-locals
-                                                                    fns'))))
-                                      (mapv #(ast/prewalk %1
+                                      (mapv #(ast/prewalk %
+                                                          (partial rewrite-locals
+                                                                   fns')))
+                                      (mapv #(ast/prewalk %
                                                           (partial rewrite-locals
                                                                    @locals->vars)))))
-                
+
                 ;; force to a let form
                 (assoc :op :let))))
 
