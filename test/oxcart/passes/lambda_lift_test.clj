@@ -47,7 +47,25 @@
                (ll/lift-lambdas {})
                (eclj/emit-clojure {})
                (eval)))))
+  
+  ;; Side by side letfn case
+  ;; -----------------------
+  (let [case '(let [x 1]
+                (letfn [(bar [z] (+ x z))]
+                  (bar x))
+                (letfn [(bar [z] (* (wat z) 3))
+                        (wat [z] (* 3 z))]
+                        ((juxt bar wat) x)))]
 
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (ll/lift-lambdas {})
+               (eclj/emit-clojure {})
+               (eval)))))
+  
   ;; Closure of closures case
   ;; ------------------------
   (let [case '(let [x 1]
