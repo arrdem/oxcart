@@ -22,6 +22,23 @@
                     (fn [x y]
                       (#(+ x %1) y)))
                   (foo 3 5))]
+
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (ll/lift-lambdas {})
+               (eclj/emit-clojure {})
+               (eval)))))
+
+  ;; Nested letfn case
+  ;; -----------------
+  (let [case '(let [x 3]
+                (letfn [(g [y] (dec y))]
+                  (letfn [(h [z] (* 2 (g z)))]
+                    (h x))))]
+
     (is (= (eval case)
            (oxcart/eval case)
            (-> (let [forms (atom {})]
