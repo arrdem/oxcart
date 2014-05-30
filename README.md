@@ -52,6 +52,7 @@ transformations, including the following
  2. Elimination of vars as a dynamic dispatch mechanism
  3. Elimination of function level implementation classes in favor of namespace or whole program level implementation classes.
  4. Inlining of functions
+ 5. Partial evaluation of functions
 
 What do these program transformations mean? Quite simply that for some
 configurations Oxcart bytecode is not compatible with reference JVM
@@ -80,14 +81,23 @@ this GSoC year but may see development time outside of GSoC.
 
  - ACTIVE [#A] Implement a whole program AST structure
  - ACTIVE [#A] Implement lambda lifting
+ - TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
  - TODO [#A] Implement tree shaking from lifted defs
  - TODO [#A] Implement a namespace level emitter
  - TODO [#A] Implement a whole program level emitter
  - TODO [#B] Implement a reference Clojure compatibility mode
+ - TODO [#B] Be able to partially evaluate numeric results
+ - TODO [#B] Precompute defmulti tables & ban runtime defmulti
+ - TODO [#B] Rewrite ((partial f a b ..) g h) → (f a b .. g h)
+ - TODO [#B] Static arity dispatch
  - TODO [#C] Implement compilation configurations & profiles
  - TODO [#C] Extend compilation profiles with symbol level annotations
  - TODO [#D] Apply pointer analysis to structural sharing and attempt compiler introduction of transients
- - TODO [#D] Interface with `clojure.core.typed` to provide compiler introduction of `core.typed` derived records and runtime typechecking.
+ - TODO [#D] Interface with `clojure.core.typed` to provide compiler introduction of `core.typed` derived records and runtime typechecking
+
+This list is open to suggestions and comment, although obviously
+suggestions for excessively complex transformations and analysis will
+likely be declined.
 
 ## License
 
