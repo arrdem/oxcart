@@ -31,6 +31,13 @@
     [nil seq]))
 
 
+(defn map-vals
+  [m f & args]
+  (->> (for [[k v] m]
+         [k (apply f v args)])
+       (into {})))
+
+
 (defn fn*->cannonical-fn*
   [[_fn* & more]]
   (let [[_sym more] (take-when symbol? more)]
@@ -47,11 +54,35 @@
                   ~@body)))))
 
 
-(defn rewrite-locals-to-vars
+(defn rewrite-locals
   [mapping ast]
   (if (pattern/local? ast)
     (get mapping (:name ast) ast)
     ast))
+
+
+(defn fix [f dat]
+  (let [dat' (f dat)]
+    (if (= dat dat')
+      dat
+      (recur f dat'))))
+
+
+(defn merge-deps
+  [mapping]
+  (->> (for [[k v] mapping]
+         [k (->> v
+                 (map mapping)
+                 (keep identity)
+                 (reduce union v))])
+       (into {})))
+
+
+(defn rewrite-closed-overs
+  [mapping binding]
+  (let [name (pattern/binding->symbol binding)]
+    (assoc-in binding [:init :closed-overs] (get mapping name))))
+
 
 
 (defn lift-fns
@@ -91,28 +122,49 @@
         ;;
         ;; 2. Create a (declare <fns>) in the defs atom.
         ;;
-        ;; 3. For each fn in the letfn rewrite the letfn bodies using
-        ;;    the mapping from 1 and emit lifted defs as would be
-        ;;    normal for lambda lifting.
+        ;; 3. Compute the closure over the closed-overs, that is
+        ;;    update the closed-overs of each function in the letfn
+        ;;    to be the fixed point union of the closed-overs.
         ;;
-        ;; 4. Replace the letfn* with a simple let* that binds the
+        ;; 4. Having computed the updated closed-over sets, rewrite
+        ;;    all the functions to eliminate the closed over
+        ;;    arguments. Note that at each step of this rewrite all of
+        ;;    the function bodies must be traversed
+        ;;
+        ;; 5. For each fn in the letfn rewrite the letfn bodies using
+        ;;    the mapping from 1.
+        ;;
+        ;; 6. Emit lifted defs as would be normal for lambda lifting.
+        ;;
+        ;; 7. Replace the letfn* with a simple let* that binds the
         ;;    partials appropriately so that I don't have to rewrite
         ;;    all the locals of the body expression.
 
-        (let [bindings     (:bindings ast)
-              locals->vars (atom {})
-              env          (:env ast)]
+        (let [bindings             (:bindings ast)
+              locals->vars         (atom {})
+              locals->closed-overs (atom {})
+              env                  (:env ast)]
 
           ;; create the forward defs
           (doseq [b bindings]
-            (let [sym (-> b
-                          pattern/binding->value 
-                          pattern/fn->name
-                          symbol)
+            (let [sym                      (-> b
+                                               pattern/binding->value
+                                               pattern/fn->name
+                                               symbol)
                   {:keys [statements ret]} (util/ast `(do (def ~sym)
                                                           ~sym)
                                                      env)
-                  def-ast (first statements)]
+                  def-ast                  (first statements)]
+
+              ;; save the closed-overs
+              (swap! locals->closed-overs
+                     assoc (pattern/binding->symbol b)
+                           (->> b
+                                pattern/binding->value
+                                :closed-overs
+                                vals
+                                (map :name)
+                                set))
 
               ;; save the def ast
               (swap! defs-atom conj def-ast)
@@ -120,16 +172,40 @@
               ;; save the var ast
               (swap! locals->vars assoc (pattern/binding->symbol b) ret)))
 
-          (-> ast
-              (assoc :bindings (mapv #(ast/prewalk %1
-                                        (partial rewrite-locals-to-vars
-                                                 @locals->vars))
-                                     bindings))
 
-              (collect-closed-overs {:what #{:closed-overs} :where #{:fn}})
+          ;; compute the fixed point over the local bindings
+          (swap! locals->closed-overs
+                 (fn [locals->closed-overs]
+                   (fix merge-deps
+                        locals->closed-overs)))
 
-              ;; force to a let form
-              (assoc :op :let)))
+          (println @locals->closed-overs)
+
+          (let [;; rewrite the bindings to share closed-over information
+                bindings' (mapv (partial rewrite-closed-overs
+                                         locals->closed-overs)
+                                bindings)
+
+                fns       (zipmap (map pattern/binding->symbol bindings')
+                                  (map pattern/binding->value  bindings'))
+
+                ;; compute the mapping from symbols to partial applications
+                fns'      (map-vals fns
+                                    (partial lift-fns defs-atom))]
+            (println fns')
+
+            (-> ast
+                (assoc :bindings (->> bindings'
+                                      (mapv (fn [binding]
+                                              (ast/prewalk binding
+                                                           (partial rewrite-locals
+                                                                    fns'))))
+                                      (mapv #(ast/prewalk %1
+                                                          (partial rewrite-locals
+                                                                   @locals->vars)))))
+                
+                ;; force to a let form
+                (assoc :op :let))))
 
 
         true
