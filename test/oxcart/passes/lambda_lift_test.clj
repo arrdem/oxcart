@@ -47,7 +47,7 @@
                (ll/lift-lambdas {})
                (eclj/emit-clojure {})
                (eval)))))
-  
+
   ;; Side by side letfn case
   ;; -----------------------
   (let [case '(let [x 1]
@@ -82,7 +82,7 @@
                (ll/lift-lambdas {})
                (eclj/emit-clojure {})
                (eval)))))
-  
+
   ;; Closure of closures case
   ;; ------------------------
   (let [case '(let [x 1]
