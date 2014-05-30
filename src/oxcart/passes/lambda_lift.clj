@@ -269,6 +269,6 @@
   [{:keys [modules] :as ast} options]
   (->> (for [module modules]
          (binding [*ns* module]
-           [module (lift-lambdas-in-module (get ast module))]))
+           [module (fix lift-lambdas-in-module (get ast module))]))
        (into {})
        (merge ast)))
