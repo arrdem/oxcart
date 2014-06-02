@@ -99,5 +99,4 @@
 
         ;; The emit set is now trivially
         emit-set (get symbol-sets (resolve entry))]
-    (info emit-set)
     (trim-with-emit-set ast emit-set)))
