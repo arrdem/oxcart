@@ -44,7 +44,7 @@
 
 
 (defn global-reach-set
-  "λ {Symbol → #{Symbol}} → {Symbol → #{Symbol}}
+  "λ {T → #{T}} → {T → #{T}}
 
   Computes the reach set for an entire program"
   [symbol-dep-tree]
