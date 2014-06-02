@@ -20,7 +20,7 @@
 
 
 (defn reach-set
-  "λ AST → #{Symbol}
+  "λ AST → #{Var}
 
   Computes the var reach set of an AST"
   [source]
