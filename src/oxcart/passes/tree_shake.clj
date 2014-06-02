@@ -88,10 +88,14 @@
 
   options:
 
-    :entry is a symbol, presumably a namespace qualified -main var,
-    which is the entry point of the prorgam. It is with respect to this
-    function that all other defs will be considered for elimination."
+    :entry is a symbol, presumably a namespace qualified -main, which
+    is the entry point of the prorgam. It is with respect to this
+    function that all other defs in all loaded namespaces will be
+    considered for elimination."
   [{:keys [modules] :as ast} {:keys [entry] :as options}]
+  {:pre [(every? symbol? modules)
+         (symbol? entry)
+         (every? (partial contains? ast) modules)]}
   (let [;; Compute the {Var → #{Var}} form of the whole program
         symbol-sets (->>  (for [m     modules
                                 form  (:forms (get ast m))
