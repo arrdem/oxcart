@@ -65,11 +65,13 @@
            (or *load-configuration*
                {:debug? false})))
 
-  ([form {:keys [debug? exec? forms classloader]
-          :or   {debug? false}
+  ([form {:keys [debug? eval? exec? forms classloader env]
+          :or   {debug? false
+                 eval?  true
+                 env    (ana.jvm/empty-env)}
           :as   options}]
      (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
-                   (macroexpand form (ana.jvm/empty-env)))]
+                   (macroexpand form env))]
 
        (if (and (seq? mform)
                 (= 'do (first mform)))
