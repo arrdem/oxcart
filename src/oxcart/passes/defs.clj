@@ -100,11 +100,11 @@
   [{:keys [modules] :as ast} options]
   (reduce
    (fn [ast module]
-     (update-in ast [module]
-                (-> module
-                    (locate-defs-in-module     options)
-                    (locate-publics-in-module  options)
-                    (locate-privates-in-module options)
-                    (locate-consts-in-module   options)
-                    (locate-dynamics-in-module options))))
+     (assoc-in ast [module]
+               (-> (get ast module)
+                   (locate-defs-in-module options)
+                   (locate-publics-in-module  options)
+                   (locate-privates-in-module options)
+                   (locate-consts-in-module   options)
+                   (locate-dynamics-in-module options))))
    ast modules))
