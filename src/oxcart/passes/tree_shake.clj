@@ -64,11 +64,10 @@
             (swap! new-ast update-in [m :forms] conj ast)
 
             (info "Discarding unused def form,"
-                  (util/line ast)))
+                  (util/format-line-info ast)))
 
-          (do (warn "Discarding non-def top level form,"
-                    (util/line ast))
-              (print (:form ast)))))
+          (warn "Discarding non-def top level form,"
+                (util/format-line-info ast))))
 
       (swap! new-ast update-in [m :forms] vec))
 
