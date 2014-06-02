@@ -31,6 +31,10 @@
 
 
 (defn -step-reach-set
+  "λ {T → #{T}} → {T → #{T}}
+
+  Implements a single update step of the context insensitive closure
+  of closures dataflow operation."
   [mapping]
   (->> (for [[var deps] mapping]
          [var (->> deps
