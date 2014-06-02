@@ -114,6 +114,12 @@
                                                 (.name *ns*))))))))
 
              ;; Run the code for side-effects
+
+             ;; FIXME: Loading core
+             ;;   This will happly eval clojure.core code, which tends
+             ;;   to break things. Should probably get a patch to
+             ;;   escape reloading and breaking core until Oxcart is
+             ;;   self-hosting.
              (when eval?
                (em.jvm/eval mform)))))))
 
