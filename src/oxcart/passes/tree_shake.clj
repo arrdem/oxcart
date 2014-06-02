@@ -16,7 +16,7 @@
             [oxcart.passes.defs :as defs]
             [clojure.set :as set]
             [clojure.tools.analyzer.ast :as ast]
-            [taoensso.timbre :refer [info warn error debug]]))
+            [taoensso.timbre :refer [info warn]]))
 
 
 (defn reach-set
