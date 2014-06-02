@@ -52,7 +52,15 @@
 
 
 (defn trim-with-emit-set
+  "λ Whole-AST → #{Var} → Whole-AST
+
+  Rewrites a Whole-AST to eliminate definitions of vars which are not
+  used. Note that this operation _preserves_ non def top level forms
+  rather than discarding them."
   [{:keys [modules] :as whole-program-ast} reach-set]
+  {:pre [(every? (partial contains? whole-program-ast) modules)
+         (every? #(get-in whole-program-ast [%1 :forms]) modules)
+         (every? var? reach-set)]}
   (let [new-ast (atom {:modules modules})]
 
     (doseq [m modules]
