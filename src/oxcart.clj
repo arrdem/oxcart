@@ -114,7 +114,8 @@
                                                 (.name *ns*))))))))
 
              ;; Run the code for side-effects
-             (em.jvm/eval mform))))))
+             (when eval?
+               (em.jvm/eval mform)))))))
 
 
 (defn load
