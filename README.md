@@ -79,11 +79,11 @@ have been a success. B items would be nice and may be accomplished
 this summer. Other priority levels are not considered in scope for
 this GSoC year but may see development time outside of GSoC.
 
- - ACTIVE [#A] Implement a whole program AST structure
- - ACTIVE [#A] Implement lambda lifting
+ - DONE Implement lambda lifting
+ - DONE Implement tree shaking from lifted defs
+ - DONE Implement a whole program AST structure
+ - ACTIVE [#A] Implement a namespace level emitter
  - TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
- - TODO [#A] Implement tree shaking from lifted defs
- - TODO [#A] Implement a namespace level emitter
  - TODO [#A] Implement a whole program level emitter
  - TODO [#B] Implement a reference Clojure compatibility mode
  - TODO [#B] Be able to partially evaluate numeric results
