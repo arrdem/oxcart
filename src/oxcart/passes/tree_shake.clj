@@ -16,7 +16,7 @@
             [oxcart.passes.defs :as defs]
             [clojure.set :as set]
             [clojure.tools.analyzer.ast :as ast]
-            [taoensso.timbre :refer [info warn error]]))
+            [taoensso.timbre :refer [info warn error debug]]))
 
 
 (defn reach-set
@@ -31,22 +31,20 @@
 
 
 (defn -step-reach-set
-  [ast]
-  (util/map-vals
-   (fn [v]
-     (->> v
-          (map (partial get ast))
-          (reduce set/union v)))))
+  [mapping]
+  (->> (for [[var deps] mapping]
+         [var (->> deps
+                   (mapv mapping)
+                   (reduce set/union deps))])
+       (into {})))
 
 
 (defn global-reach-set
   "λ {Symbol → #{Symbol}} → {Symbol → #{Symbol}}
 
   Computes the reach set for an entire program"
-  [whole-program-ast]
-  (util/fix -step-reach-set
-            (-> whole-program-ast
-                (util/map-vals reach-set))))
+  [symbol-dep-tree]
+  (util/fix -step-reach-set symbol-dep-tree))
 
 
 (defn trim-with-emit-set
@@ -54,14 +52,25 @@
   (let [new-ast (atom {:modules modules})]
 
     (doseq [m modules]
-      (doseq [[sym ast] (get whole-program-ast m)]
+      (debug "Pondering module:" m)
+
+      (assert (:forms (get whole-program-ast m)))
+
+      (doseq [ast (:forms (get whole-program-ast m))]
+        (debug "Pondering line:" (util/line ast) (:op ast))
+
         (if (pattern/def? ast)
           (if (contains? reach-set (:var ast))
-            (swap! new-ast assoc-in [m sym] ast)
+            (swap! new-ast update-in [m :forms] conj ast)
+
             (info "Discarding unused def form,"
                   (util/line ast)))
-          (warn "Discarding non-def top level form,"
-                (util/line ast)))))
+
+          (do (warn "Discarding non-def top level form,"
+                    (util/line ast))
+              (print (:form ast)))))
+
+      (swap! new-ast update-in [m :forms] vec))
 
     @new-ast))
 
@@ -80,17 +89,15 @@
     which is the entry point of the prorgam. It is with respect to this
     function that all other defs will be considered for elimination."
   [{:keys [modules] :as ast} {:keys [entry] :as options}]
-  (let [;; First find and annotate all the defs in the program
-        ast (-> ast (defs/locate-defs options))
-
-        ;; Then compute the {Var → #{Var}} form of the whole program
-        symbol-sets (->> (for [m   modules
-                               sym (keys (get ast m))
-                               :let [form (get-in ast [m sym])]]
-                           [(:var form) (reach-set form)])
-                         (into {})
-                         global-reach-set)
+  (let [;; Compute the {Var → #{Var}} form of the whole program
+        symbol-sets (->>  (for [m     modules
+                                form  (:forms (get ast m))
+                                :when (pattern/def? form)]
+                            [(:var form) (reach-set form)])
+                          (into {})
+                          global-reach-set)
 
         ;; The emit set is now trivially
         emit-set (get symbol-sets (resolve entry))]
+    (info emit-set)
     (trim-with-emit-set ast emit-set)))
