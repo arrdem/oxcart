@@ -21,26 +21,9 @@
             [clojure.set :refer [union]]))
 
 
-(defn take-when
-  "When pred is true of the head of seq, return [head tail]. Otherwise
-  [nil seq]. Used as a helper for parsing optinal typed elements out
-  of sequences. Say docstrings out of argument seqs."
-  [pred seq]
-  (if (pred (first seq))
-    ((juxt first rest) seq)
-    [nil seq]))
-
-
-(defn map-vals
-  [m f & args]
-  (->> (for [[k v] m]
-         [k (apply f v args)])
-       (into {})))
-
-
 (defn fn*->cannonical-fn*
   [[_fn* & more]]
-  (let [[_sym more] (take-when symbol? more)]
+  (let [[_sym more] (util/take-when symbol? more)]
     (if (vector? (first more))
       `(fn* (~@more))
       `(fn* ~@more))))
@@ -59,13 +42,6 @@
   (if (pattern/local? ast)
     (get mapping (:name ast) ast)
     ast))
-
-
-(defn fix [f dat]
-  (let [dat' (f dat)]
-    (if (= dat dat')
-      dat
-      (recur f dat'))))
 
 
 (defn merge-deps
@@ -132,7 +108,7 @@
         ;;
         ;; 3. Compute the closure over the closed-overs, that is
         ;;    update the closed-overs of each function in the letfn
-        ;;    to be the fixed point union of the closed-overs.
+        ;;    to be the util/fixed point union of the closed-overs.
         ;;
         ;; 4. Having computed the updated closed-over sets, rewrite
         ;;    all the functions to eliminate the closed over
@@ -181,10 +157,10 @@
               (swap! locals->vars assoc (pattern/binding->symbol b) ret)))
 
 
-          ;; compute the fixed point over the local bindings
+          ;; compute the util/fixed point over the local bindings
           (swap! locals->closed-overs
                  (fn [locals->closed-overs]
-                   (fix merge-deps
+                   (util/fix merge-deps
                         locals->closed-overs)))
 
           (let [;; rewrite the bindings to share closed-over information
@@ -196,7 +172,7 @@
                                   (map pattern/binding->value  bindings'))
 
                 ;; compute the mapping from symbols to partial applications
-                fns'      (map-vals fns
+                fns'      (util/map-vals fns
                                     (partial lift-fns (atom [])))]
 
             (-> ast
@@ -269,6 +245,6 @@
   [{:keys [modules] :as ast} options]
   (->> (for [module modules]
          (binding [*ns* module]
-           [module (lift-lambdas-in-module (get ast module))]))
+           [module (util/fix lift-lambdas-in-module (get ast module))]))
        (into {})
        (merge ast)))

@@ -36,3 +36,33 @@
        (-> (binding [macroexpand-1 ana.jvm/macroexpand-1]
              (macroexpand form env))
            (ana.jvm/analyze env)))))
+
+
+(defn take-when
+  "When pred is true of the head of seq, return [head tail]. Otherwise
+  [nil seq]. Used as a helper for parsing optinal typed elements out
+  of sequences. Say docstrings out of argument seqs."
+  [pred seq]
+  (if (pred (first seq))
+    ((juxt first rest) seq)
+    [nil seq]))
+
+
+(defn map-vals
+  [m f & args]
+  (->> (for [[k v] m]
+         [k (apply f v args)])
+       (into {})))
+
+
+(defn fix [f dat]
+  (let [dat' (f dat)]
+    (if (= dat dat')
+      dat
+      (recur f dat'))))
+
+
+(defn line 
+  [ast]
+  (let [{:keys [file line column]} (-> ast :meta :env)]
+    (format "%s:%s:%s" file line column)))

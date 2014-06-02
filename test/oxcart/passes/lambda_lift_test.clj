@@ -8,34 +8,94 @@
 ;;   notice, or any other, from this software.
 
 (ns oxcart.passes.lambda-lift-test
-  (:require [oxcart.passes.lambda-lift :refer :all]
-            [oxcart.test-util :refer :all]
+  (:require [oxcart.passes.lambda-lift :as ll]
+            [oxcart.passes.emit-clj :as eclj]
+            [oxcart]
             [clojure.test :refer :all]))
 
 
-;; Basic test case
-;; ---------------
+(deftest lambda-lift-tests
 
-(def foo
-  (fn [x y]
-    (#(+ x %1) y)))
+  ;; Basic test case
+  ;; ---------------
+  (let [case '(do (def foo
+                    (fn [x y]
+                      (#(+ x %1) y)))
+                  (foo 3 5))]
 
-;; This should lift to
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (ll/lift-lambdas {})
+               (eclj/emit-clojure {})
+               (eval)))))
 
-(def fn#
-  (fn [x _1]
-    (+ x _1)))
+  ;; Nested letfn case
+  ;; -----------------
+  (let [case '(let [x 3]
+                (letfn [(g [y] (dec y))]
+                  (letfn [(h [z] (* 2 (g z)))]
+                    (h x))))]
 
-(def foo
-  (fn [x y]
-    ((partial fn# x) y)))
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (ll/lift-lambdas {})
+               (eclj/emit-clojure {})
+               (eval)))))
 
+  ;; Side by side letfn case
+  ;; -----------------------
+  (let [case '(let [x 1]
+                (letfn [(bar [z] (+ x z))]
+                  (bar x))
+                (letfn [(bar [z] (* (wat z) 3))
+                        (wat [z] (* 3 z))]
+                        ((juxt bar wat) x)))]
 
-;; Letfn case
-;; -------------------
-;;
-;; (defn foo [x]
-;;   (letfn [(bar [z] (+ x z))
-;;           (baz [z] (dec (bar z)))
-;;           (wat [z] (* 3 z (baz z)))]
-;;     ((juxt bar baz wat) x)))
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (ll/lift-lambdas {})
+               (eclj/emit-clojure {})
+               (eval)))))
+
+  ;; Local rebinding case
+  ;; --------------------
+  (let [case '(let [x 1]
+                (letfn [(bar [z] (+ x z))]
+                  (letfn [(bar [z] (* (wat z) 3))
+                          (wat [z] (* 3 z))]
+                    ((juxt bar wat) x))))]
+
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (ll/lift-lambdas {})
+               (eclj/emit-clojure {})
+               (eval)))))
+
+  ;; Closure of closures case
+  ;; ------------------------
+  (let [case '(let [x 1]
+                (letfn [(bar [z] (+ x z))
+                        (baz [z] (dec (bar z)))
+                        (wat [z] (* 3 z (baz z)))]
+                  ((juxt bar baz wat) x)))]
+
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (ll/lift-lambdas {})
+               (eclj/emit-clojure {})
+               (eval))))))

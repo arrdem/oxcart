@@ -65,11 +65,13 @@
            (or *load-configuration*
                {:debug? false})))
 
-  ([form {:keys [debug? exec? forms classloader]
-          :or   {debug? false}
+  ([form {:keys [debug? eval? exec? forms classloader env]
+          :or   {debug? false
+                 eval?  true
+                 env    (ana.jvm/empty-env)}
           :as   options}]
      (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
-                   (macroexpand form (ana.jvm/empty-env)))]
+                   (macroexpand form env))]
 
        (if (and (seq? mform)
                 (= 'do (first mform)))
@@ -112,7 +114,14 @@
                                                 (.name *ns*))))))))
 
              ;; Run the code for side-effects
-             (em.jvm/eval mform))))))
+
+             ;; FIXME: Loading core
+             ;;   This will happly eval clojure.core code, which tends
+             ;;   to break things. Should probably get a patch to
+             ;;   escape reloading and breaking core until Oxcart is
+             ;;   self-hosting.
+             (when eval?
+               (em.jvm/eval mform)))))))
 
 
 (defn load
