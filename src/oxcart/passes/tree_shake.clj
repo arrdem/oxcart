@@ -61,7 +61,7 @@
       (assert (:forms (get whole-program-ast m)))
 
       (doseq [ast (:forms (get whole-program-ast m))]
-        (debug "Pondering line:" (util/line ast) (:op ast))
+        (debug "Pondering line:" (util/format-line-info ast) (:op ast))
 
         (if (pattern/def? ast)
           (if (contains? reach-set (:var ast))
