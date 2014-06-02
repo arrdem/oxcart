@@ -78,8 +78,7 @@
             (info "Discarding unused def form,"
                   (util/format-line-info ast)))
 
-          (warn "Discarding non-def top level form,"
-                (util/format-line-info ast))))
+          (swap! new-ast update-in [m :forms] conj ast)))
 
       (swap! new-ast update-in [m :forms] vec))
 
