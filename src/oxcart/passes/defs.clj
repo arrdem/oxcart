@@ -25,7 +25,7 @@
             (if (pattern/def? form)
               (assoc-in module 
                         [:symbols (pattern/def->symbol form)] form)
-              form))
+              module))
           module (:forms module)))
 
 
