@@ -60,3 +60,9 @@
     (if (= dat dat')
       dat
       (recur f dat'))))
+
+
+(defn line 
+  [ast]
+  (let [{:keys [file line column]} (-> ast :meta :env)]
+    (format "%s:%s:%s" file line column)))
