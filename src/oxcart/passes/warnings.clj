@@ -188,5 +188,5 @@
 
     (assert (not @error?)
             "Errors were generated in checking."))
-  (-> ast
+  (-> whole-ast
       (record-pass check-ops)))
