@@ -82,6 +82,7 @@ this GSoC year but may see development time outside of GSoC.
  - DONE Implement compiler warnings for unsupported forms & errors
  - ACTIVE [#A] Implement a reference Clojure compatibility mode
  - ACTIVE [#A] Build Oxcart with itself
+ - ACTIVE [#A] Create an interface for using oxcart either standalone or via leiningen to compile Clojure source to bytecode
  - ACTIVE [#B] Static arity dispatch
  - ACTIVE [#B] Static arity elimination
  - ACTIVE [#B] Function as value analysis
