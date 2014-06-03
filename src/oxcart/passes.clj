@@ -82,7 +82,7 @@
 
 (defn record-pass
   [whole-ast pass]
-  (update-in whole-ast [:passes] conj pass))
+  (update-in whole-ast [:passes] (fn [x y] (conj (or x #{}) y)) pass))
 
 
 (defn require-pass
