@@ -13,6 +13,7 @@
    :added "0.0.3"
    :author "Reid McKenzie"}
   (:require [oxcart.util :as util]
+            [oxcart.passes :refer [record-pass clobber-passes]]
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
             [clojure.tools.analyzer.passes.jvm.emit-form :refer [emit-form]]
@@ -243,8 +244,10 @@
   options:
     At present there are no options accepted by this pass."
   [{:keys [modules] :as ast} options]
-  (->> (for [module modules]
-         (binding [*ns* module]
-           [module (util/fix lift-lambdas-in-module (get ast module))]))
-       (into {})
-       (merge ast)))
+  (-> (->> (for [module modules]
+             (binding [*ns* module]
+               [module (util/fix lift-lambdas-in-module (get ast module))]))
+           (into {})
+           (merge ast))
+      (clobber-passes)
+      (record-pass lift-lambdas)))

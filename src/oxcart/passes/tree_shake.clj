@@ -13,6 +13,7 @@
    :added "0.0.5"}
   (:require [oxcart.util :as util]
             [oxcart.pattern :as pattern]
+            [oxcart.passes :refer [require-pass record-pass clobber-passes]]
             [oxcart.passes.defs :as defs]
             [clojure.set :as set]
             [clojure.tools.analyzer.ast :as ast]
@@ -64,13 +65,9 @@
   (let [new-ast (atom {:modules modules})]
 
     (doseq [m modules]
-      (debug "Pondering module:" m)
-
       (assert (:forms (get whole-program-ast m)))
 
       (doseq [ast (:forms (get whole-program-ast m))]
-        (debug "Pondering line:" (util/format-line-info ast) (:op ast))
-
         (if (pattern/def? ast)
           (if (contains? reach-set (:var ast))
             (swap! new-ast update-in [m :forms] conj ast)
@@ -91,27 +88,28 @@
   Implements an analysis pass which creates the following annotations
   in the supplied whole program AST.
 
-  `:dependency-map` {Var → #{Var}}, represents the vars directly
-  depended on by any given var for which source information exists in
-  the whole program AST.
+    :dependency-map {Var → #{Var}}, represents the vars directly
+    depended on by any given var for which source information exists
+    in the whole program AST.
 
-  `:reach-map` {Var → #{Var}}, represents the reach sets of every var
-  in the program AST for which source information exists.
+    :reach-map {Var → #{Var}}, represents the reach sets of every var
+    in the program AST for which source information exists.
 
   options:
     This function takes no options."
   [{:keys [modules] :as whole-program-ast} options]
   {:pre [(every? symbol? modules)
-         (every? (partial contains? ast) modules)]}
+         (every? (partial contains? whole-program-ast) modules)]}
   (let [dep-maps  (->>  (for [m     modules
-                              form  (:forms (get ast m))
+                              form  (:forms (get whole-program-ast m))
                               :when (pattern/def? form)]
                           [(:var form) (reach-set form)])
                         (into {}))
         reach-map (global-reach-set dep-maps)]
     (-> whole-program-ast
         (assoc :dependency-map dep-maps
-               :reach-map      reach-map))))
+               :reach-map      reach-map)
+        (record-pass analyze-var-dependencies))))
 
 
 (defn tree-shake
@@ -131,6 +129,8 @@
   {:pre [(every? symbol? modules)
          (symbol? entry)
          (every? (partial contains? ast) modules)]}
-  (let [ast      (analyze-var-dependencies ast options)
+  (let [ast      (require-pass analyze-var-dependencies options)
         emit-set (get (:reach-map ast) (resolve entry))]
-    (trim-with-emit-set ast emit-set)))
+    (-> ast
+        (trim-with-emit-set emit-set)
+        (clobber-passes))))
