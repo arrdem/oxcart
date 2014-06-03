@@ -79,8 +79,8 @@ this GSoC year but may see development time outside of GSoC.
  - DONE Implement lambda lifting
  - DONE Implement tree shaking from lifted defs
  - DONE Implement a whole program AST structure
+ - DONE Implement compiler warnings for unsupported forms & errors
  - ACTIVE [#A] Implement a namespace level emitter
- - ACTIVE [#A] Implement compiler warnings for unsupported forms & errors
  - TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
  - TODO [#A] Implement a whole program level emitter
  - TODO [#B] Implement a reference Clojure compatibility mode
