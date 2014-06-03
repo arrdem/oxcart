@@ -85,6 +85,35 @@
     @new-ast))
 
 
+(defn analyze-var-dependencies
+  "λ Whole-AST → options → Whole-AST
+
+  Implements an analysis pass which creates the following annotations
+  in the supplied whole program AST.
+
+  `:dependency-map` {Var → #{Var}}, represents the vars directly
+  depended on by any given var for which source information exists in
+  the whole program AST.
+
+  `:reach-map` {Var → #{Var}}, represents the reach sets of every var
+  in the program AST for which source information exists.
+
+  options:
+    This function takes no options."
+  [{:keys [modules] :as whole-program-ast} options]
+  {:pre [(every? symbol? modules)
+         (every? (partial contains? ast) modules)]}
+  (let [dep-maps  (->>  (for [m     modules
+                              form  (:forms (get ast m))
+                              :when (pattern/def? form)]
+                          [(:var form) (reach-set form)])
+                        (into {}))
+        reach-map (global-reach-set dep-maps)]
+    (-> whole-program-ast
+        (assoc :dependency-map dep-maps
+               :reach-map      reach-map))))
+
+
 (defn tree-shake
   "λ Whole-AST → options → Whole-AST
 
@@ -94,7 +123,6 @@
   the program.
 
   options:
-
     :entry is a symbol, presumably a namespace qualified -main, which
     is the entry point of the prorgam. It is with respect to this
     function that all other defs in all loaded namespaces will be
@@ -103,14 +131,6 @@
   {:pre [(every? symbol? modules)
          (symbol? entry)
          (every? (partial contains? ast) modules)]}
-  (let [;; Compute the {Var → #{Var}} form of the whole program
-        symbol-sets (->>  (for [m     modules
-                                form  (:forms (get ast m))
-                                :when (pattern/def? form)]
-                            [(:var form) (reach-set form)])
-                          (into {})
-                          global-reach-set)
-
-        ;; The emit set is now trivially
-        emit-set (get symbol-sets (resolve entry))]
+  (let [ast      (analyze-var-dependencies ast options)
+        emit-set (get (:reach-map ast) (resolve entry))]
     (trim-with-emit-set ast emit-set)))
