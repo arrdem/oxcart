@@ -32,7 +32,7 @@
 
 
 (defn whole-ast->modules
-  "  Whole-AST   (Seq Module)
+  "λ Whole-AST → (Seq Module)
 
   Returns the modules of the ASt as a sequence."
   [{:keys [modules] :as whole-ast}]
@@ -40,7 +40,7 @@
 
 
 (defn whole-ast->forms
-  "  Whole-AST   (Seq AST)
+  "λ Whole-AST → (Seq AST)
 
   Returns a sequence of all the individual top level form ASTs in the
   given Whole-AST."
@@ -51,7 +51,7 @@
 
 
 (defn update-forms
-  "  Whole-AST   (  Form   Form)   arg *
+  "λ Whole-AST → (λ Form → Form) → arg *
 
   Updates every form in the given Whole-ast, replacing it with (apply
   f form args). Intended to eliminate repetitive Whole-AST
