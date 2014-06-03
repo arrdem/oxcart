@@ -13,14 +13,15 @@
    :added "0.0.5"}
   (:require [oxcart.util :as util]
             [oxcart.pattern :as pattern]
+            [oxcart.passes :refer [require-pass record-pass clobber-passes]]
             [oxcart.passes.defs :as defs]
             [clojure.set :as set]
             [clojure.tools.analyzer.ast :as ast]
-            [taoensso.timbre :refer [info warn error debug]]))
+            [taoensso.timbre :refer [info warn]]))
 
 
 (defn reach-set
-  "λ AST → #{Symbol}
+  "λ AST → #{Var}
 
   Computes the var reach set of an AST"
   [source]
@@ -31,6 +32,10 @@
 
 
 (defn -step-reach-set
+  "λ {T → #{T}} → {T → #{T}}
+
+  Implements a single update step of the context insensitive closure
+  of closures dataflow operation."
   [mapping]
   (->> (for [[var deps] mapping]
          [var (->> deps
@@ -40,7 +45,7 @@
 
 
 (defn global-reach-set
-  "λ {Symbol → #{Symbol}} → {Symbol → #{Symbol}}
+  "λ {T → #{T}} → {T → #{T}}
 
   Computes the reach set for an entire program"
   [symbol-dep-tree]
@@ -48,31 +53,63 @@
 
 
 (defn trim-with-emit-set
+  "λ Whole-AST → #{Var} → Whole-AST
+
+  Rewrites a Whole-AST to eliminate definitions of vars which are not
+  used. Note that this operation _preserves_ non def top level forms
+  rather than discarding them."
   [{:keys [modules] :as whole-program-ast} reach-set]
+  {:pre [(every? (partial contains? whole-program-ast) modules)
+         (every? #(get-in whole-program-ast [%1 :forms]) modules)
+         (every? var? reach-set)]}
   (let [new-ast (atom {:modules modules})]
 
     (doseq [m modules]
-      (debug "Pondering module:" m)
-
       (assert (:forms (get whole-program-ast m)))
 
       (doseq [ast (:forms (get whole-program-ast m))]
-        (debug "Pondering line:" (util/line ast) (:op ast))
-
         (if (pattern/def? ast)
           (if (contains? reach-set (:var ast))
             (swap! new-ast update-in [m :forms] conj ast)
 
             (info "Discarding unused def form,"
-                  (util/line ast)))
+                  (util/format-line-info ast)))
 
-          (do (warn "Discarding non-def top level form,"
-                    (util/line ast))
-              (print (:form ast)))))
+          (swap! new-ast update-in [m :forms] conj ast)))
 
       (swap! new-ast update-in [m :forms] vec))
 
     @new-ast))
+
+
+(defn analyze-var-dependencies
+  "λ Whole-AST → options → Whole-AST
+
+  Implements an analysis pass which creates the following annotations
+  in the supplied whole program AST.
+
+    :dependency-map {Var → #{Var}}, represents the vars directly
+    depended on by any given var for which source information exists
+    in the whole program AST.
+
+    :reach-map {Var → #{Var}}, represents the reach sets of every var
+    in the program AST for which source information exists.
+
+  options:
+    This function takes no options."
+  [{:keys [modules] :as whole-program-ast} options]
+  {:pre [(every? symbol? modules)
+         (every? (partial contains? whole-program-ast) modules)]}
+  (let [dep-maps  (->>  (for [m     modules
+                              form  (:forms (get whole-program-ast m))
+                              :when (pattern/def? form)]
+                          [(:var form) (reach-set form)])
+                        (into {}))
+        reach-map (global-reach-set dep-maps)]
+    (-> whole-program-ast
+        (assoc :dependency-map dep-maps
+               :reach-map      reach-map)
+        (record-pass analyze-var-dependencies))))
 
 
 (defn tree-shake
@@ -84,20 +121,16 @@
   the program.
 
   options:
-
-    :entry is a symbol, presumably a namespace qualified -main var,
-    which is the entry point of the prorgam. It is with respect to this
-    function that all other defs will be considered for elimination."
+    :entry is a symbol, presumably a namespace qualified -main, which
+    is the entry point of the prorgam. It is with respect to this
+    function that all other defs in all loaded namespaces will be
+    considered for elimination."
   [{:keys [modules] :as ast} {:keys [entry] :as options}]
-  (let [;; Compute the {Var → #{Var}} form of the whole program
-        symbol-sets (->>  (for [m     modules
-                                form  (:forms (get ast m))
-                                :when (pattern/def? form)]
-                            [(:var form) (reach-set form)])
-                          (into {})
-                          global-reach-set)
-
-        ;; The emit set is now trivially
-        emit-set (get symbol-sets (resolve entry))]
-    (info emit-set)
-    (trim-with-emit-set ast emit-set)))
+  {:pre [(every? symbol? modules)
+         (symbol? entry)
+         (every? (partial contains? ast) modules)]}
+  (let [ast      (require-pass analyze-var-dependencies options)
+        emit-set (get (:reach-map ast) (resolve entry))]
+    (-> ast
+        (trim-with-emit-set emit-set)
+        (clobber-passes))))

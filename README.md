@@ -37,13 +37,10 @@ Oxcart and will result in compile time errors.
 Unsupported forms include but are not limited to
 
  - `clojure.core/eval`
- - `clojure.lang.Var.alterRoot()`
- - `clojure.lang.Var.alter()`
- - `clojure.lang.Var.set()`
- - `clojure.core/alter-var-root`
- - `clojure.core/set!`
- - `clojure.core/symbol`
  - `clojure.core/read-string`
+ - `clojure.core/resolve`
+ - `clojure.core/alter-var-root!`
+ - `clojure.core/set!`
 
 Oxcart seeks to perform a number of performance impacting
 transformations, including the following
@@ -83,10 +80,10 @@ this GSoC year but may see development time outside of GSoC.
  - DONE Implement tree shaking from lifted defs
  - DONE Implement a whole program AST structure
  - ACTIVE [#A] Implement a namespace level emitter
+ - ACTIVE [#A] Implement compiler warnings for unsupported forms & errors
  - TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
  - TODO [#A] Implement a whole program level emitter
  - TODO [#B] Implement a reference Clojure compatibility mode
- - TODO [#B] Be able to partially evaluate numeric results
  - TODO [#B] Precompute defmulti tables & ban runtime defmulti
  - TODO [#B] Rewrite ((partial f a b ..) g h) → (f a b .. g h)
  - TODO [#B] Static arity dispatch

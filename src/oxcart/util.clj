@@ -62,7 +62,13 @@
       (recur f dat'))))
 
 
-(defn line 
+(defn format-line-info
+  "λ AST → (Option String)
+
+  Emits a string with the file, line and column information from the
+  argument AST. Returns nil if the argument AST lacks the appropriate
+  metadata."
   [ast]
   (let [{:keys [file line column]} (-> ast :meta :env)]
-    (format "%s:%s:%s" file line column)))
+    (when (and file line column)
+      (format "%s:%s:%s" file line column))))
