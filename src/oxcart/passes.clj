@@ -31,6 +31,40 @@
 ;; order.
 
 
+(defn whole-ast->modules
+  "  Whole-AST   (Seq Module)
+
+  Returns the modules of the ASt as a sequence."
+  [{:keys [modules] :as whole-ast}]
+  (map whole-ast modules))
+
+
+(defn whole-ast->forms
+  "  Whole-AST   (Seq AST)
+
+  Returns a sequence of all the individual top level form ASTs in the
+  given Whole-AST."
+  [whole-ast]
+  (->> whole-ast
+       whole-ast->modules
+       (mapcat :forms)))
+
+
+(defn update-forms
+  "  Whole-AST   (  Form   Form)   arg *
+
+  Updates every form in the given Whole-ast, replacing it with (apply
+  f form args). Intended to eliminate repetitive Whole-AST
+  comprehensions in pass implementations."
+  [{:keys [modules] :as whole-ast} f & args]
+  (->> (for [m modules]
+         [m {:forms
+             (for [form (:forms (get whole-ast m))]
+               (apply f form args))}])
+       (into {})
+       (merge whole-ast)))
+
+
 ;; Passes are then functions from Whole-ASTs to Whole-ASTs. For user
 ;; "friendliness" each pass shall also take an options argument which
 ;; may change the behavior of the pass by enabling or disabling a
@@ -50,16 +84,18 @@
   [whole-ast pass]
   (update-in whole-ast [:passes] conj pass))
 
+
 (defn require-pass
   [whole-ast pass options]
   (if (contains? (:passes whole-ast) pass)
     whole-ast
     (pass whole-ast options)))
 
+
 (defn do-passes
-  [ast options & passes]
+  [whole-ast options & passes]
   (reduce #(require-pass %1 %2 options)
-          ast passes))
+          whole-ast passes))
 
 
 ;; To enable this pattern however, transforming passes are required to
@@ -69,5 +105,5 @@
 
 
 (defn clobber-passes
-  [ast]
-  (assoc ast :passes #{}))
+  [whole-ast]
+  (assoc whole-ast :passes #{}))
