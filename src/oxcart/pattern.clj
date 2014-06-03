@@ -40,6 +40,16 @@
     (:name ast)))
 
 
+(defn def->var
+  "λ AST → (Option Var)
+
+  If the argument form was a def returns the defined var. Otherwise
+  the return value is garbage."
+  [ast]
+  (when (def? ast)
+    (:var ast)))
+
+
 (defn top-level?
   "λ AST → Boolean
 
