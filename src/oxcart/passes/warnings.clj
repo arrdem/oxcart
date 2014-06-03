@@ -137,7 +137,7 @@
 (def banned-ops
   "AST operations which are banned due to their violation of Oxcart's
   static assumptions."
-  #{})
+  #{:def})
 
 
 (def dangerous-ops
