@@ -61,7 +61,7 @@ start. Instances of these classes are wrapped in `clojure.lang.Var`
 instances and are interned in Clojure's global symbol table. This is
 all well and good for a naive language implementation but it is
 possible to do much better. By eliminating dynamic var access either
-via `read-string`, `symbol` or `eval`, Oxcart can statically prove
+via `read-string`, `Var` or `eval`, Oxcart can statically prove
 that your program will never take some function F as a value and thus
 that it is wasteful to implement it as a fully fledged class when it
 could be compacted. This means that attempts attempt to load an Oxcart
