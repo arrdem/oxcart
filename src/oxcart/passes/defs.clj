@@ -26,6 +26,7 @@
   (->> (for [form (:forms module)
              :when (pattern/def? form)]
          [(pattern/def->symbol form) form])
+       (into {})
        (assoc module :symbols)))
 
 
