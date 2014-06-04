@@ -110,6 +110,13 @@
   (is-not (p/letfn? (:init fail))))
 
 
+(deftest binding?-tests
+  (doseq [op ops]
+    (if (not= op :binding)
+      (is-not (p/binding? {:op op}))
+      (is (p/binding? {:op op})))))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
