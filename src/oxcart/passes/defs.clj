@@ -12,7 +12,8 @@
    :added "0.0.2"
    :author "Reid McKenzie"}
   (:require [oxcart.pattern :as pattern]
-            [oxcart.passes :refer [record-pass]]
+            [oxcart.passes :refer [record-pass
+                                   update-modules]]
             [clojure.set :refer [union]]))
 
 
@@ -97,14 +98,13 @@
     :const   is the set of symbols which are marked constant.
     :dynamic is the set of symbols marked dynamic."
   [{:keys [modules] :as ast} options]
-  (-> (reduce
-       (fn [ast module]
-         (assoc-in ast [module]
-                   (-> (get ast module)
-                       (locate-defs-in-module options)
-                       (locate-publics-in-module  options)
-                       (locate-privates-in-module options)
-                       (locate-consts-in-module   options)
-                       (locate-dynamics-in-module options))))
-       ast modules)
+  (-> ast
+      (update-modules 
+       (fn [module]
+         (-> module
+             (locate-defs-in-module options)
+             (locate-publics-in-module  options)
+             (locate-privates-in-module options)
+             (locate-consts-in-module   options)
+             (locate-dynamics-in-module options))))
       (record-pass locate-defs)))
