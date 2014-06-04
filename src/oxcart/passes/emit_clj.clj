@@ -13,7 +13,7 @@
    :added "0.0.4"
    :author "Reid McKenzie"}
   (:require [clojure.tools.analyzer.passes.jvm.emit-form :as emit]
-            [oxcart.passes.util :as util]))
+            [oxcart.passes :as passes]))
 
 
 (defn emit-clojure
@@ -28,6 +28,6 @@
     At present there are no options accepted by this pass."
   [{:keys [modules] :as whole-ast} options]
   (->> whole-ast
-       util/whole-ast->forms
+       passes/whole-ast->forms
        (map emit/emit-form)
        (cons 'do)))
