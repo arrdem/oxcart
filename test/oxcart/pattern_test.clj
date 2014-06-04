@@ -60,6 +60,13 @@
   (is-not (p/fn? addition)))
 
 
+(deftest fn->name-tests
+  (is (p/fn->name (:init foo)))
+  (is (p/fn->name (:init bar)))
+  (is (p/fn->name fail))
+  (is-not (p/fn->name addition)))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
