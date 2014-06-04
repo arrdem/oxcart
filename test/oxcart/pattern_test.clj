@@ -4,6 +4,14 @@
             [clojure.test :refer :all]))
 
 
+(def ops
+  #{:binding :catch :const :def :do :fn :fn-method
+    :host-call :host-field :host-interop :if :invoke
+    :let :letfn :local :loop :map :maybe-class
+    :maybe-host-form :new :quote :recur :set :set!
+    :throw :try :var :vector :with-meta})
+
+
 (def foo
   (ast
    (defn foo [x]
@@ -26,6 +34,10 @@
 
 
 (deftest def?-tests
+  (doseq [op ops]
+    (if (not= op :def)
+      (is-not (p/def? {:op op}))
+      (is (p/def? {:op op}))))
   (is (p/def? foo))
   (is (p/def? bar))
   (is-not (p/def? fail)))
@@ -54,6 +66,10 @@
 
 
 (deftest fn?-tests
+  (doseq [op ops]
+    (if (not= op :fn)
+      (is-not (p/fn? {:op op}))
+      (is (p/fn? {:op op}))))
   (is (p/fn? (:init foo)))
   (is (p/fn? (:init bar)))
   (is (p/fn? fail))
@@ -69,16 +85,22 @@
 
 
 (deftest let?-tests
+  (doseq [op ops]
+    (if (not= op :let)
+      (is-not (p/let? {:op op}))
+      (is (p/let? {:op op}))))
   (is-not (p/let? foo))
   (is-not (p/let? (:init foo)))
   (is-not (p/let? bar))
   (is-not (p/let? (:init bar)))
-  (is (p/let? addition))
-  (is (p/let? {:op :let})))
+  (is (p/let? addition)))
 
 
 (deftest letfn?-tests
-  (is (p/letfn? {:op :letfn}))
+  (doseq [op ops]
+    (if (not= op :letfn)
+      (is-not (p/letfn? {:op op}))
+      (is (p/letfn? {:op op}))))
   (is-not (p/letfn? addition))
   (is-not (p/letfn? foo))
   (is-not (p/letfn? (:init foo)))
