@@ -37,10 +37,11 @@ Oxcart and will result in compile time errors.
 Unsupported forms include but are not limited to
 
  - `clojure.core/eval`
+ - `clojure.core/load`
  - `clojure.core/read-string`
  - `clojure.core/resolve`
- - `clojure.core/alter-var-root!`
- - `clojure.core/set!`
+ - `clojure.core/alter-var-root`
+ - `set!`
 
 Oxcart seeks to perform a number of performance impacting
 transformations, including the following
