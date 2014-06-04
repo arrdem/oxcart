@@ -117,6 +117,15 @@
       (is (p/binding? {:op op})))))
 
 
+(deftest binding->symbol-tests
+  ;; FIXME:
+  ;;   This test depends on internals of t.a.jvm's renaming and
+  ;;   _technically_ is implementation defined but it's probably safe
+  ;;   for now.
+  (let [b (first (:bindings addition))]
+    (is (= 'x__#0 (p/binding->symbol b)))))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
