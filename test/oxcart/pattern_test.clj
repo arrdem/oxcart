@@ -126,6 +126,12 @@
     (is (= 'x__#0 (p/binding->symbol b)))))
 
 
+;; FIXME:
+;;   Tests for binding->value should go here, however as with
+;;   binding->symbol it's a pretty worthless and definitional
+;;   test. Omitted for now, fix later.
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
