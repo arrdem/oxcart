@@ -132,6 +132,16 @@
 ;;   test. Omitted for now, fix later.
 
 
+(deftest local?-tests
+  (doseq [op ops]
+    (if (not= op :local)
+      (is-not (p/local? {:op op}))
+      (is (p/local? {:op op}))))
+
+  (is (p/local?
+       (-> addition :body :ret :args first))))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
