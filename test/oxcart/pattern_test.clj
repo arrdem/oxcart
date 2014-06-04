@@ -68,6 +68,15 @@
   (is-not (p/fn->name addition)))
 
 
+(deftest let?-tests
+  (is-not (p/let? foo))
+  (is-not (p/let? (:init foo)))
+  (is-not (p/let? bar))
+  (is-not (p/let? (:init bar)))
+  (is (p/let? addition))
+  (is (p/let? {:op :let})))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
