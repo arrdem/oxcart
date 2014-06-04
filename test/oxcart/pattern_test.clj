@@ -64,6 +64,7 @@
   (is (p/fn->name (:init foo)))
   (is (p/fn->name (:init bar)))
   (is (p/fn->name fail))
+  (is (= "bar" (p/fn->name {:op :fn :internal-name "bar"})))
   (is-not (p/fn->name addition)))
 
 
