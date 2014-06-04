@@ -29,6 +29,7 @@
   failures should be reported before compilation is aborted."
 
   #{#'clojure.core/eval
+    #'clojure.core/load
     #'clojure.core/read-string
     #'clojure.core/alter-var-root})
 
