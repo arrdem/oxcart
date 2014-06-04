@@ -62,6 +62,11 @@
       (recur f dat'))))
 
 
+(defn update [map key f & args]
+  (assoc map key
+         (apply f (get map key) args)))
+
+
 (defn format-line-info
   "λ AST → (Option String)
 
