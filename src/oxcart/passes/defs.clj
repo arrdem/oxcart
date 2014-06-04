@@ -22,12 +22,10 @@
   Helper function which implements definition location within the
   context of a single module."
   [module options]
-  (reduce (fn [module form]
-            (if (pattern/def? form)
-              (assoc-in module
-                        [:symbols (pattern/def->symbol form)] form)
-              module))
-          module (:forms module)))
+  (->> (for [form (:forms module)
+             :when (pattern/def? form)]
+         [(pattern/def->symbol form) form])
+       (assoc module :symbols)))
 
 
 (defn- locate-publics-in-module
