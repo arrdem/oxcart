@@ -23,8 +23,7 @@
             [clojure.string :as s]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as readers]
-            [oxcart.util :as util]
-            [oxcart.pattern :as patern])
+            [oxcart.util :as util])
   (:import clojure.lang.IFn))
 
 
