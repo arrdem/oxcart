@@ -39,6 +39,16 @@
   (is-not (var? (p/def->var fail))))
 
 
+(deftest top-level?-tests
+  (is (p/top-level? foo))
+  (is (p/top-level? bar))
+  (is (p/top-level? fail))
+  (is-not (p/top-level?
+           (-> (ast (let [x 1] (+ x 2)))
+               :body
+               :ret))))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
