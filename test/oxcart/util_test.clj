@@ -28,3 +28,13 @@
                   (/ x 2)
                   x))
               1024))))
+
+
+(deftest update-tests
+  (is (= {:foo 4}
+         (update {:foo 3}
+                 :foo inc)))
+
+  (is (= {:foo {:bar 4}}
+         (update {:foo {}}
+                 :foo #(assoc %1 :bar 4)))))
