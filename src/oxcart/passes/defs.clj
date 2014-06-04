@@ -108,7 +108,7 @@
       (update-modules 
        (fn [module]
          (-> module
-             (locate-defs-in-module options)
+             (locate-defs-in-module     options)
              (locate-publics-in-module  options)
              (locate-privates-in-module options)
              (locate-consts-in-module   options)
