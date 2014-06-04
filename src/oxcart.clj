@@ -98,7 +98,10 @@
          ;;   answer is no, but it'd be nice.
 
          (do ;; Save the AST using (.name *ns*) to determine the module
-             (let [ast (util/ast mform)]
+             (let [ast (-> mform
+                           (util/ast)
+                           (assoc :raw-form form
+                                  :raw-op   (when (list? form) (first form))))]
                ;; Add to the accumulator for the whole read program
                ;;
                ;; Builds a mapping of the form
