@@ -77,6 +77,17 @@
   (is (p/let? {:op :let})))
 
 
+(deftest letfn?-tests
+  (is (p/letfn? {:op :letfn}))
+  (is-not (p/letfn? addition))
+  (is-not (p/letfn? foo))
+  (is-not (p/letfn? (:init foo)))
+  (is-not (p/letfn? bar))
+  (is-not (p/letfn? (:init bar)))
+  (is-not (p/letfn? fail))
+  (is-not (p/letfn? (:init fail))))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
