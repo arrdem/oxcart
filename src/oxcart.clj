@@ -90,15 +90,9 @@
 
            (eval ret options))
 
-         ;; bare expression handling
-         ;;-----------------------------
-         ;; FIXME: Repeated analysis
-         ;;   Is there some way that I can merge this so that only one
-         ;;   ana.jvm/analyze invocation is required? I think the
-         ;;   answer is no, but it'd be nice.
-
-         (do ;; Save the AST using (.name *ns*) to determine the module
-             (let [ast (-> mform
+         ;; Bare expression handling
+         ;; ----------------------------
+         (do (let [ast (-> mform
                            (util/ast)
                            (assoc :raw-form form
                                   :raw-op   (when (list? form) (first form))))]
