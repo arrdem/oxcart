@@ -85,6 +85,12 @@
          (assoc module :dynamic))))
 
 
+;; FIXME
+;;   This pass is T(n) = 5*n, which is quite likely going to be a
+;;   problem if iterated def location becomes an analysis
+;;   priority. Squashing all the locate-*-9n-module operations into a
+;;   single efficient pass over a single module would be slick.
+
 (defn locate-defs
   "λ AST → options → AST
 
