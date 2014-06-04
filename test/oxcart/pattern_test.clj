@@ -33,6 +33,12 @@
   (is (nil? (p/def->symbol fail))))
 
 
+(deftest def->var-tests
+  (is (var? (p/def->var foo)))
+  (is (var? (p/def->var bar)))
+  (is-not (var? (p/def->var fail))))
+
+
 (def private-defn
   (ast
    (defn ^:private baz [x]
