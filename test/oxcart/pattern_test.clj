@@ -21,6 +21,10 @@
    (fn [] 1)))
 
 
+(def addition
+  (ast (let [x 1] (+ x 2))))
+
+
 (deftest def?-tests
   (is (p/def? foo))
   (is (p/def? bar))
@@ -44,9 +48,16 @@
   (is (p/top-level? bar))
   (is (p/top-level? fail))
   (is-not (p/top-level?
-           (-> (ast (let [x 1] (+ x 2)))
+           (-> addition
                :body
                :ret))))
+
+
+(deftest fn?-tests
+  (is (p/fn? (:init foo)))
+  (is (p/fn? (:init bar)))
+  (is (p/fn? fail))
+  (is-not (p/fn? addition)))
 
 
 (def private-defn
