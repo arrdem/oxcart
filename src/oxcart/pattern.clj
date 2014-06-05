@@ -20,6 +20,7 @@
 ;;  make core.match a dependency of this project rather than hard
 ;;  coding datastructure dependant paths and equality checks.
 
+
 (defn def?
   "λ AST -> Boolean
 

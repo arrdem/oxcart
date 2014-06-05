@@ -23,13 +23,13 @@
             [clojure.string :as s]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as readers]
-            [oxcart.util :as util]
-            [oxcart.pattern :as patern])
+            [oxcart.util :as util])
   (:import clojure.lang.IFn))
 
 
 (def root-directory
   @#'clojure.core/root-directory)
+
 
 (def ^:dynamic *load-configuration*
   "Dynamic var that oxcart/load uses to stash its configuration.
@@ -90,15 +90,13 @@
 
            (eval ret options))
 
-         ;; bare expression handling
-         ;;-----------------------------
-         ;; FIXME: Repeated analysis
-         ;;   Is there some way that I can merge this so that only one
-         ;;   ana.jvm/analyze invocation is required? I think the
-         ;;   answer is no, but it'd be nice.
-
-         (do ;; Save the AST using (.name *ns*) to determine the module
-             (let [ast (util/ast mform)]
+         ;; Bare expression handling
+         ;; ----------------------------
+         (do (let [ast (-> mform
+                           (util/ast)
+                           (assoc :raw-form form
+                                  :raw-op   (when (list? form)
+                                              (first form))))]
                ;; Add to the accumulator for the whole read program
                ;;
                ;; Builds a mapping of the form
@@ -114,13 +112,8 @@
                                                 (.name *ns*))))))))
 
              ;; Run the code for side-effects
-
-             ;; FIXME: Loading core
-             ;;   This will happly eval clojure.core code, which tends
-             ;;   to break things. Should probably get a patch to
-             ;;   escape reloading and breaking core until Oxcart is
-             ;;   self-hosting.
-             (when eval?
+             (when (and eval?
+                        (not (= 'clojure.core (.name *ns*))))
                (em.jvm/eval mform)))))))
 
 

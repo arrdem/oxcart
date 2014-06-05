@@ -1,7 +1,24 @@
+;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
+;;   and distribution terms for this software are covered by the
+;;   Eclipse Public License 1.0
+;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
+;;   found in the file epl-v10.html at the root of this distribution.
+;;   By using this software in any fashion, you are agreeing to be
+;;   bound by the terms of this license.  You must not remove this
+;;   notice, or any other, from this software.
+
 (ns oxcart.pattern-test
   (:require [oxcart.pattern :as p]
             [oxcart.test-util :refer :all]
             [clojure.test :refer :all]))
+
+
+(def ops
+  #{:binding :catch :const :def :do :fn :fn-method
+    :host-call :host-field :host-interop :if :invoke
+    :let :letfn :local :loop :map :maybe-class
+    :maybe-host-form :new :quote :recur :set :set!
+    :throw :try :var :vector :with-meta})
 
 
 (def foo
@@ -21,7 +38,15 @@
    (fn [] 1)))
 
 
+(def addition
+  (ast (let [x 1] (+ x 2))))
+
+
 (deftest def?-tests
+  (doseq [op ops]
+    (if (not= op :def)
+      (is-not (p/def? {:op op}))
+      (is (p/def? {:op op}))))
   (is (p/def? foo))
   (is (p/def? bar))
   (is-not (p/def? fail)))
@@ -31,6 +56,99 @@
   (is (= 'foo (p/def->symbol foo)))
   (is (= 'bar (p/def->symbol bar)))
   (is (nil? (p/def->symbol fail))))
+
+
+(deftest def->var-tests
+  (is (var? (p/def->var foo)))
+  (is (var? (p/def->var bar)))
+  (is-not (var? (p/def->var fail))))
+
+
+(deftest top-level?-tests
+  (is (p/top-level? foo))
+  (is (p/top-level? bar))
+  (is (p/top-level? fail))
+  (is-not (p/top-level?
+           (-> addition
+               :body
+               :ret))))
+
+
+(deftest fn?-tests
+  (doseq [op ops]
+    (if (not= op :fn)
+      (is-not (p/fn? {:op op}))
+      (is (p/fn? {:op op}))))
+  (is (p/fn? (:init foo)))
+  (is (p/fn? (:init bar)))
+  (is (p/fn? fail))
+  (is-not (p/fn? addition)))
+
+
+(deftest fn->name-tests
+  (is (p/fn->name (:init foo)))
+  (is (p/fn->name (:init bar)))
+  (is (p/fn->name fail))
+  (is (= "bar" (p/fn->name {:op :fn :internal-name "bar"})))
+  (is-not (p/fn->name addition)))
+
+
+(deftest let?-tests
+  (doseq [op ops]
+    (if (not= op :let)
+      (is-not (p/let? {:op op}))
+      (is (p/let? {:op op}))))
+  (is-not (p/let? foo))
+  (is-not (p/let? (:init foo)))
+  (is-not (p/let? bar))
+  (is-not (p/let? (:init bar)))
+  (is (p/let? addition)))
+
+
+(deftest letfn?-tests
+  (doseq [op ops]
+    (if (not= op :letfn)
+      (is-not (p/letfn? {:op op}))
+      (is (p/letfn? {:op op}))))
+  (is-not (p/letfn? addition))
+  (is-not (p/letfn? foo))
+  (is-not (p/letfn? (:init foo)))
+  (is-not (p/letfn? bar))
+  (is-not (p/letfn? (:init bar)))
+  (is-not (p/letfn? fail))
+  (is-not (p/letfn? (:init fail))))
+
+
+(deftest binding?-tests
+  (doseq [op ops]
+    (if (not= op :binding)
+      (is-not (p/binding? {:op op}))
+      (is (p/binding? {:op op})))))
+
+
+(deftest binding->symbol-tests
+  ;; FIXME:
+  ;;   This test depends on internals of t.a.jvm's renaming and
+  ;;   _technically_ is implementation defined but it's probably safe
+  ;;   for now.
+  (let [b (first (:bindings addition))]
+    (is (= 'x__#0 (p/binding->symbol b)))))
+
+
+;; FIXME:
+;;   Tests for binding->value should go here, however as with
+;;   binding->symbol it's a pretty worthless and definitional
+;;   test. Omitted for now, fix later.
+
+
+(deftest local?-tests
+  (doseq [op ops]
+    (if (not= op :local)
+      (is-not (p/local? {:op op}))
+      (is (p/local? {:op op}))))
+
+  (is (p/local?
+       (-> addition :body :ret :args first))))
 
 
 (def private-defn

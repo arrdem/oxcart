@@ -29,6 +29,7 @@
   failures should be reported before compilation is aborted."
 
   #{#'clojure.core/eval
+    #'clojure.core/load
     #'clojure.core/read-string
     #'clojure.core/alter-var-root})
 
@@ -58,7 +59,9 @@
   "λ Whole-AST → options → Whole-AST
 
   Emits the appropriate error messages when banned or unsupported vars
-  are used by input program.
+  are used by input program. Note that checking is done over all forms
+  in the Whole-AST, and that to escape errors from unreachable code
+  tree shaking must be performed prior to this analysis pass.
 
   options:
     :suppress-errors
@@ -102,31 +105,39 @@
 
      ;; do a single pass over the forms
      (doseq [ast forms]
-       (if-let [var (pattern/def->var ast)]
-         (cond (contains? banned-vars var)
-               ;; outright banned vars
-               (do (when-not suppress-errors
-                     (reset! error? true))
-                   (error (str (util/format-line-info ast)
-                               ", Program makes use of banned var:"
-                               var)))
+       (when-let [var (pattern/def->var ast)]
+         (when-let [deps (get dep-map var) ;; :- #{Var}
+                    ]
+           (when-let [i (intersection deps banned-vars) ;; :- #{Var}
+                      ]
+             ;; outright banned vars
+             (when-not suppress-errors
+               (reset! error? true))
 
-              (contains? banned-set var)
-              ;; user banned vars
-              (do (when-not suppress-errors
-                    (reset! error? true))
-                  (error (str (util/format-line-info ast)
-                              ", Program makes use of user banned var:"
-                              var)))
+             (doseq [error-var i]
+               (error (str (util/format-line-info ast)
+                           ", Program makes use of banned var:"
+                           error-var))))
 
-              (and (contains? dangerous-vars var)
-                   warn-unsupported)
-              ;; unsupported vars
-              (do (when warnings-as-errors
-                    (reset! error? true))
-                  (warn (str (util/format-line-info ast)
-                             ", Program makes use of flagged var:"
-                             var))))))
+           (when-let [i (intersection deps banned-set)]
+             ;; user banned vars
+             (when-not suppress-errors
+               (reset! error? true))
+
+             (doseq [error-var i]
+               (error (str (util/format-line-info ast)
+                           ", Program makes use of user banned var:"
+                           error-var))))
+
+           (when-let [i (intersection deps dangerous-vars)]
+             ;; unsupported vars
+             (when warnings-as-errors
+               (reset! error? true))
+
+             (doseq [warn-var i]
+               (warn (str (util/format-line-info ast)
+                          ", Program makes use of flagged var:"
+                          warn-var)))))))
 
      (assert (not @error?)
              "Errors were generated in checking.")

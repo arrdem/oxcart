@@ -12,7 +12,8 @@
    :added "0.0.2"
    :author "Reid McKenzie"}
   (:require [oxcart.pattern :as pattern]
-            [oxcart.passes :refer [record-pass]]
+            [oxcart.passes :refer [record-pass
+                                   update-modules]]
             [clojure.set :refer [union]]))
 
 
@@ -22,12 +23,11 @@
   Helper function which implements definition location within the
   context of a single module."
   [module options]
-  (reduce (fn [module form]
-            (if (pattern/def? form)
-              (assoc-in module
-                        [:symbols (pattern/def->symbol form)] form)
-              module))
-          module (:forms module)))
+  (->> (for [form (:forms module)
+             :when (pattern/def? form)]
+         [(pattern/def->symbol form) form])
+       (into {})
+       (assoc module :symbols)))
 
 
 (defn- locate-publics-in-module
@@ -86,6 +86,12 @@
          (assoc module :dynamic))))
 
 
+;; FIXME
+;;   This pass is T(n) = 5*n, which is quite likely going to be a
+;;   problem if iterated def location becomes an analysis
+;;   priority. Squashing all the locate-*-9n-module operations into a
+;;   single efficient pass over a single module would be slick.
+
 (defn locate-defs
   "λ AST → options → AST
 
@@ -99,14 +105,13 @@
     :const   is the set of symbols which are marked constant.
     :dynamic is the set of symbols marked dynamic."
   [{:keys [modules] :as ast} options]
-  (-> (reduce
-       (fn [ast module]
-         (assoc-in ast [module]
-                   (-> (get ast module)
-                       (locate-defs-in-module options)
-                       (locate-publics-in-module  options)
-                       (locate-privates-in-module options)
-                       (locate-consts-in-module   options)
-                       (locate-dynamics-in-module options))))
-       ast modules)
+  (-> ast
+      (update-modules 
+       (fn [module]
+         (-> module
+             (locate-defs-in-module     options)
+             (locate-publics-in-module  options)
+             (locate-privates-in-module options)
+             (locate-consts-in-module   options)
+             (locate-dynamics-in-module options))))
       (record-pass locate-defs)))

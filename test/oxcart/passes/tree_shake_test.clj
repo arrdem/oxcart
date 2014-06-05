@@ -7,13 +7,16 @@
 ;;   bound by the terms of this license.  You must not remove this
 ;;   notice, or any other, from this software.
 
-(ns oxcart.passes.util
-  {:doc "Packages helper utilities common to Oxcart passes."
-   :added "0.0.4"
-   :author "Reid McKenzie"})
+(ns oxcart.passes.tree-shake-test
+  (:require [oxcart.passes.tree-shake :refer :all]
+            [clojure.test :refer :all]))
 
-(defn whole-ast->forms
-  [{:keys [modules] :as whole-ast}]
-  (->> modules
-       (map (partial get whole-ast))
-       (mapcat :forms)))
+
+(deftest global-reach-set-test
+  (let [tree {:foo #{}
+              :bar #{:foo}
+              :baz #{:bar}}
+        tree (global-reach-set tree)]
+    (is (= (:foo tree) #{}))
+    (is (= (:bar tree) #{:foo}))
+    (is (= (:baz tree) #{:bar :foo}))))

@@ -10,7 +10,8 @@
 (ns oxcart.passes
   {:doc "Implements a naive pass manager and dependency system."
    :author "Reid McKenzie"
-   :added  "0.0.6"})
+   :added  "0.0.6"}
+  (:require [oxcart.util :refer [update]]))
 
 
 ;; Whole-ASTs are maps of this structure:
@@ -50,19 +51,33 @@
        (mapcat :forms)))
 
 
+(defn update-modules
+  "λ Whole-AST → (λ Module → args * → Module) → args *
+
+  Updates every module in the AST, replacing it with (apply f module
+  args). Intended to eliminate repetitive Whole-AST comprehensions in
+  pass implementations."
+  [{:keys [modules] :as whole-ast} f & args]
+  (->> (for [m modules]
+         [m (apply f (get whole-ast m) args)])
+       (into {})
+       (merge whole-ast)))
+
+
 (defn update-forms
-  "λ Whole-AST → (λ Form → Form) → arg *
+  "λ Whole-AST → (λ Form → args * → Form) → args *
 
   Updates every form in the given Whole-ast, replacing it with (apply
   f form args). Intended to eliminate repetitive Whole-AST
   comprehensions in pass implementations."
-  [{:keys [modules] :as whole-ast} f & args]
-  (->> (for [m modules]
-         [m {:forms
-             (for [form (:forms (get whole-ast m))]
-               (apply f form args))}])
-       (into {})
-       (merge whole-ast)))
+  [whole-ast f & args]
+  (-> whole-ast
+      (update-modules
+       (fn [module]
+         (update module :forms 
+                 (fn [forms]
+                   (mapv #(apply f %1 args)
+                         forms)))))))
 
 
 ;; Passes are then functions from Whole-ASTs to Whole-ASTs. For user
