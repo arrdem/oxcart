@@ -81,17 +81,17 @@ this GSoC year but may see development time outside of GSoC.
  - DONE Implement tree shaking from lifted defs
  - DONE Implement a whole program AST structure
  - DONE Implement compiler warnings for unsupported forms & errors
+ - DONE Test coverage is not completely woeful
  - ACTIVE [#A] Implement a reference Clojure compatibility mode
- - ACTIVE [#A] Build Oxcart with itself
  - ACTIVE [#A] Create an interface for using oxcart either standalone or via leiningen to compile Clojure source to bytecode
- - ACTIVE [#B] Static arity dispatch
- - ACTIVE [#B] Static arity elimination
- - ACTIVE [#B] Function as value analysis
- - TODO [#A] Test coverage is woeful at best right now, go back over all modules and check for test coverage
  - TODO [#A] Precondition coverage is woeful at best, go back and add appropriate coverage
  - TODO [#A] Implement a namespace level emitter
  - TODO [#A] Implement a whole program level emitter
  - TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
+ - TODO [#B] Static arity dispatch
+ - TODO [#B] Static arity elimination
+ - TODO [#B] Function as value analysis
+ - TODO [#B] Build Oxcart with itself
  - TODO [#B] Statically identify multimethods and cache final their fully computed dispatch tables as static values
  - TODO [#B] Rewrite ((partial f a b ..) g h) → (f a b .. g h)
  - TODO [#C] Implement compilation configurations & profiles
