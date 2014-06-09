@@ -23,7 +23,8 @@
             [clojure.string :as s]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as readers]
-            [oxcart.util :as util])
+            [oxcart.util :as util]
+            [clojure.tools.cli :refer [parse-opts]])
   (:import clojure.lang.IFn))
 
 
@@ -234,3 +235,42 @@
        (let [settings (:emitter settings)]
          (emitter @forms settings)))
      nil))
+
+
+(def options
+  ;; An option with a required argument
+  [["-v" nil "Verbosity level"
+    :id :verbosity
+    :default 0
+    :assoc-fn (fn [m k _] (update-in m [k] inc))]
+   ;; A boolean option defaulting to nil
+   ["-h" "--help"]])
+
+
+(defn usage [options-summary]
+  (->> ["Oxcart"
+        ""
+        "Options:"
+        options-summary
+        ]
+       (s/join \newline)))
+
+
+(defn exit [status msg]
+  (println msg)
+  (System/exit status))
+
+
+(defn -main
+  [& args]
+  (let [defaults {}
+        {:keys [options arguments summary]}
+          (parse-opts args options)
+        [ns & _] arguments
+        settings (merge defaults options)]
+
+    (cond (:help options)
+            (exit 0 (usage summary))
+
+          true
+            (compile ns settings))))
