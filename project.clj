@@ -11,5 +11,7 @@
                  [org.clojure/tools.reader       "0.8.4"]
                  [com.taoensso/timbre            "3.2.1"]
                  ]
+  :profiles {:dev {:dependencies [[radagast "1.2.2"]]}}
+  :radagast/ns-whitelist #"oxcart.*"
   :injections [(set! *print-length* 10)
                (set! *print-level*  10)])

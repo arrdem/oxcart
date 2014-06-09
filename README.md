@@ -50,7 +50,6 @@ transformations, including the following
  2. Elimination of vars as a dynamic dispatch mechanism
  3. Elimination of function level implementation classes in favor of namespace or whole program level implementation classes.
  4. Inlining of functions
- 5. Partial evaluation of functions
 
 What do these program transformations mean? Quite simply that for some
 configurations Oxcart bytecode is not compatible with reference JVM
@@ -61,48 +60,18 @@ start. Instances of these classes are wrapped in `clojure.lang.Var`
 instances and are interned in Clojure's global symbol table. This is
 all well and good for a naive language implementation but it is
 possible to do much better. By eliminating dynamic var access either
-via `read-string`, `Var` or `eval`, Oxcart can statically prove
-that your program will never take some function F as a value and thus
-that it is wasteful to implement it as a fully fledged class when it
-could be compacted. This means that attempts attempt to load an Oxcart
+via `read-string`, `Var` or `eval`, Oxcart can statically prove that
+your program will never take some function F as a value and thus that
+it is wasteful to implement it as a fully fledged class when it could
+be compacted. This means that attempts attempt to load an Oxcart
 produced JAR or class from the REPL and interact with it as though it
 were normal Clojure bytecode will almost certainly fail. Some Oxcart
 configurations may provide full reference Clojure interop however this
 behavior is low priority at present.
 
-## TODO List
-
-A items will be finished by the end of the summer for this project to
-have been a success. B items would be nice and may be accomplished
-this summer. Other priority levels are not considered in scope for
-this GSoC year but may see development time outside of GSoC.
-
- - DONE Implement lambda lifting
- - DONE Implement tree shaking from lifted defs
- - DONE Implement a whole program AST structure
- - DONE Implement compiler warnings for unsupported forms & errors
- - DONE Test coverage is not completely woeful
- - ACTIVE [#A] Implement a reference Clojure compatibility mode
- - ACTIVE [#A] Create an interface for using oxcart either standalone or via leiningen to compile Clojure source to bytecode
- - TODO [#A] Precondition coverage is woeful at best, go back and add appropriate coverage
- - TODO [#A] Implement a namespace level emitter
- - TODO [#A] Implement a whole program level emitter
- - TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
- - TODO [#B] Static arity dispatch
- - TODO [#B] Static arity elimination
- - TODO [#B] Function as value analysis
- - TODO [#B] Build Oxcart with itself
- - TODO [#B] Statically identify multimethods and cache final their fully computed dispatch tables as static values
- - TODO [#B] Rewrite ((partial f a b ..) g h) → (f a b .. g h)
- - TODO [#C] Implement compilation configurations & profiles
- - TODO [#C] Extend compilation profiles with symbol level annotations
- - TODO [#C] Add `clojure.core.typed` annotations to all Oxcart code
- - TODO [#D] Apply pointer analysis to structural sharing and attempt compiler introduction of transients
- - TODO [#D] Interface with `clojure.core.typed` to provide compiler introduction of `core.typed` derived records and runtime typechecking
-
-This list is open to suggestions and comment, although obviously
-suggestions for excessively complex transformations and analysis will
-likely be declined.
+ - [Documentation](doc/index.org)
+ - [Changelog](CHANGES.org)
+ - [TODO list](TODO.org)
 
 ## License
 
