@@ -108,29 +108,32 @@
 
          ;; Bare expression handling
          ;; ----------------------------
-         (do (let [ast (-> mform
-                           (util/ast)
-                           (assoc :raw-form form
-                                  :raw-op   (when (list? form)
-                                              (first form))))]
-               ;; Add to the accumulator for the whole read program
-               ;;
-               ;; Builds a mapping of the form
-               (when (and forms
-                          (atom? forms))
-                 (swap! forms
-                        #(-> %1
-                             (update-in [(.name *ns*) :forms]
-                                        concat [ast])
-                             (update-in [:modules]
-                                        (fn [x]
-                                          (conj (or x #{})
-                                                (.name *ns*))))))))
+         (do ;; Run the code for side-effects
+             (let [res (when (and eval?
+                                  (not (= 'clojure.core (.name *ns*))))
+                         (em.jvm/eval mform))]
 
-             ;; Run the code for side-effects
-             (when (and eval?
-                        (not (= 'clojure.core (.name *ns*))))
-               (em.jvm/eval mform)))))))
+               (let [ast (-> mform
+                             (util/ast)
+                             (assoc :raw-form form
+                                    :raw-op   (when (list? form)
+                                                (first form))))]
+
+                 ;; Add to the accumulator for the whole read program
+                 ;;
+                 ;; Builds a mapping of the form
+                 (when (and forms
+                            (atom? forms))
+                   (swap! forms
+                          #(-> %1
+                               (update-in [(.name *ns*) :forms]
+                                          concat [ast])
+                               (update-in [:modules]
+                                          (fn [x]
+                                            (conj (or x #{})
+                                                  (.name *ns*))))))))
+
+               res))))))
 
 
 (defn load
