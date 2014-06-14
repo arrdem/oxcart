@@ -114,10 +114,7 @@
                          (em.jvm/eval mform))]
 
                (let [ast (-> mform
-                             (util/ast)
-                             (assoc :raw-form form
-                                    :raw-op   (when (list? form)
-                                                (first form))))]
+                             (util/ast))]
 
                  ;; Add to the accumulator for the whole read program
                  ;;
