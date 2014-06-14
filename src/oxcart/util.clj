@@ -17,7 +17,9 @@
             [clojure.tools.analyzer
              :refer [macroexpand-1
                      macroexpand]
-             :as ana]))
+             :as ana]
+            [clojure.tools.analyzer.passes.elide-meta
+             :refer [elides]]))
 
 (defn ast
   "λ Form → AST
@@ -32,7 +34,8 @@
      (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
                ana/create-var    ana.jvm/create-var
                ana/parse         ana.jvm/parse
-               ana/var?          var?]
+               ana/var?          var?
+               elides            (into #{:line :column :end-line :end-column :file :source} elides)]
        (-> (binding [macroexpand-1 ana.jvm/macroexpand-1]
              (macroexpand form env))
            (ana.jvm/analyze env)))))
@@ -77,3 +80,21 @@
   (let [{:keys [file line column]} (-> ast :meta :env)]
     (when (and file line column)
       (format "%s:%s:%s" file line column))))
+
+
+(defn ->ensure
+  ([v pred]
+     (->ensure v pred "->assert failed!"))
+
+  ([v pred error]
+     (if (pred v) v
+         (assert false error))))
+
+
+(defn ->>ensure
+  ([pred v]
+     (->>ensure pred "->>assert failed!" v))
+
+  ([pred error v]
+     (if (pred v) v
+         (assert false error))))

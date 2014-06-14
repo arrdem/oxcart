@@ -9,7 +9,8 @@
 
 (ns oxcart.pattern-test
   (:require [oxcart.pattern :as p]
-            [oxcart.test-util :refer :all]
+            [oxcart.util :refer [ast]]
+            [oxcart.test-util :refer [is-not]]
             [clojure.test :refer :all]))
 
 
@@ -23,23 +24,23 @@
 
 (def foo
   (ast
-   (defn foo [x]
-     (inc x))))
+   '(defn foo [x]
+      (inc x))))
 
 
 (def bar
   (ast
-   (def bar
-     (fn [x] (dec x)))))
+   '(def bar
+      (fn [x] (dec x)))))
 
 
 (def fail
   (ast
-   (fn [] 1)))
+   '(fn [] 1)))
 
 
 (def addition
-  (ast (let [x 1] (+ x 2))))
+  (ast '(let [x 1] (+ x 2))))
 
 
 (deftest def?-tests
@@ -67,7 +68,6 @@
 (deftest top-level?-tests
   (is (p/top-level? foo))
   (is (p/top-level? bar))
-  (is (p/top-level? fail))
   (is-not (p/top-level?
            (-> addition
                :body
@@ -153,14 +153,14 @@
 
 (def private-defn
   (ast
-   (defn ^:private baz [x]
-     (* x x))))
+   '(defn ^:private baz [x]
+      (* x x))))
 
 
 (def private-def
   (ast
-   (def ^:private quxx
-     (fn [x] (mod x 2)))))
+   '(def ^:private quxx
+      (fn [x] (mod x 2)))))
 
 
 (deftest public?-tests
@@ -179,13 +179,13 @@
 
 (def dynamic-defn
   (ast
-   (defn ^:dynamic fred [x]
-     (rand-int (mod x 4)))))
+   '(defn ^:dynamic fred [x]
+      (rand-int (mod x 4)))))
 
 
 (def dynamic-def
   (ast
-   (def ^:dynamic *foo* nil)))
+   '(def ^:dynamic *foo* nil)))
 
 
 (deftest dynamic?-test
@@ -200,14 +200,14 @@
 
 (def const-defn
   (ast
-   (defn ^:const corge [x]
-     (/ x x))))
+   '(defn ^:const corge [x]
+      (/ x x))))
 
 
 (def const-def
   (ast
-   (def ^:const grault
-     (fn [x] (- x 2)))))
+   '(def ^:const grault
+      (fn [x] (- x 2)))))
 
 
 (deftest const?-tests
