@@ -216,7 +216,7 @@
   -----------
   This pass takes no options."
   [whole-ast options]
-  (let [error?   (atom false)]
+  (let [error? (atom false)]
     (doseq [ast (whole-ast->forms whole-ast)]
       (when-not (pattern/def? ast)
         (reset! error? true)
