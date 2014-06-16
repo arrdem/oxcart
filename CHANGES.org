@@ -1,0 +1,4 @@
+* 0.0.8
+  - Fix #6, implement var as value analysis
+  - Fix #7, implement a gensym wrapper with metadata
+  - Fix #9, implement macro discarding
