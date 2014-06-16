@@ -212,6 +212,10 @@
   effects. Such programs, while valid Clojure, may not be supported by
   all Oxcart emitters.
 
+  This pass should probably be run after
+  oxcart.passes.rewrite-namspaces as the Clojure namespace form relies
+  on emitting top level forms inside of a do block.
+
   Options
   -----------
   This pass takes no options."
