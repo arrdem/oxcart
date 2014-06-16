@@ -142,15 +142,15 @@
                       (require-pass locate-defs {})
                       (update-forms write-context))
         m         (transient {})]
-    (doseq [form (whole-ast->forms whole-ast)]
-      (doseq [{:keys [op var] :as node} (ast/nodes form)]
-        (when var
-          (assoc! m var
-                  (if (and (= :var op)
-                           (not (= :value (get m node)))
-                           (= (-> node :env ::context) :invoke))
-                    :target
-                    :value)))))
+    (doseq [form                      (whole-ast->forms whole-ast)
+            {:keys [op var] :as node} (ast/nodes form)]
+      (when var
+        (assoc! m var
+                (if (and (= :var op)
+                         (not (= :value (get m node)))
+                         (= (-> node :env ::context) :invoke))
+                  :target
+                  :value))))
     (-> whole-ast
         (assoc :usage (persistent! m))
         (record-pass locate-var-as-value))))
