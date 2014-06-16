@@ -139,7 +139,7 @@
 
   Options
   -----------
-  This pass takes no options."
+    This pass takes no options."
   [whole-ast options]
   (-> whole-ast
       (update-modules (comp rewrite-module-deps drop-in-ns))
