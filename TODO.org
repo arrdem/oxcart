@@ -1,0 +1,472 @@
+* GSoC
+  all time
+   #+BEGIN: clocktable :maxlevel 2 :scope subtree
+   #+CAPTION: Clock summary at [2014-06-16 Mon 18:03]
+   | Headline          | Time      |         |
+   |-------------------+-----------+---------|
+   | *Total time*      | *4d 7:51* |         |
+   |-------------------+-----------+---------|
+   | GSoC              | 4d 7:51   |         |
+   | \__ Time tracking |           | 3d 4:39 |
+   | \__ TODOs         |           |   14:11 |
+   | \__ Notes         |           |   13:01 |
+   #+END:
+
+   today
+   #+BEGIN: clocktable :tstart "<-1d>" :tend "<now>"
+   #+CAPTION: Clock summary at [2014-06-16 Mon 18:03]
+   | Headline     | Time   |      |
+   |--------------+--------+------|
+   | *Total time* | *7:57* |      |
+   |--------------+--------+------|
+   | GSoC         | 7:57   |      |
+   | \__ TODOs    |        | 7:57 |
+   #+END: clocktable
+
+** Time tracking
+*** TODO Reading into the JVM
+    CLOCK: [2014-06-13 Fri 10:53]--[2014-06-13 Fri 12:29] =>  1:36
+
+*** DONE Whole program AST
+    CLOCK: [2014-05-21 Wed 10:33]--[2014-05-21 Wed 14:06] =>  3:33
+    CLOCK: [2014-05-16 Fri 14:21]--[2014-05-16 Fri 14:55] =>  0:34
+    CLOCK: [2014-05-15 Thu 14:11]--[2014-05-15 Thu 19:52] =>  5:41
+    :PROPERTIES:
+    :ID:       5d11410f-13d0-4bbb-a327-51bb336a6cc8
+    :END:
+
+*** DONE Lambda lifting
+    CLOCK: [2014-05-30 Fri 17:58]--[2014-05-30 Fri 17:58] =>  0:00
+    CLOCK: [2014-05-30 Fri 15:49]--[2014-05-30 Fri 17:58] =>  2:09
+    CLOCK: [2014-05-30 Fri 10:34]--[2014-05-30 Fri 15:49] =>  5:15
+
+*** DONE Def location
+    CLOCK: [2014-05-22 Thu 10:57]--[2014-05-22 Thu 18:48] =>  7:51
+
+*** DONE Static error detection
+    CLOCK: [2014-06-03 Tue 10:38]--[2014-06-03 Tue 16:38] =>  6:00
+
+*** DONE Tree shaking
+    CLOCK: [2014-06-02 Mon 10:10]--[2014-06-02 Mon 20:02] =>  9:52
+    :PROPERTIES:
+    :ID:       b7410ff3-8952-4765-8ec2-5abe549d8b9e
+    :END:
+
+*** DONE tools.emitter.jvm reading
+    CLOCK: [2014-05-20 Tue 12:52]--[2014-05-20 Tue 15:12] =>  2:20
+    CLOCK: [2014-05-20 Tue 10:55]--[2014-05-20 Tue 12:14] =>  1:19
+    CLOCK: [2014-05-19 Mon 13:15]--[2014-05-19 Mon 18:15] =>  5:00
+    :PROPERTIES:
+    :ID:       c4088d84-9011-414b-84d9-c5c55294cd35
+    :END:
+
+*** DONE Tree shaking load
+    CLOCK: [2014-05-20 Tue 18:24]--[2014-05-20 Tue 22:20] =>  3:56
+    CLOCK: [2014-05-20 Tue 15:22]--[2014-05-20 Tue 16:55] =>  1:33
+    :PROPERTIES:
+    :ID:       0c0352b3-54f5-47f6-9a31-3f5fa4507ed5
+    :END:
+
+*** TODO TEJVM classfile emitter
+    CLOCK: [2014-06-09 Mon 11:58]--[2014-06-10 Tue 07:58] => 20:00
+
+** TODOs
+*** TODO [#A] Implement a reference Clojure compatibility mode
+
+*** TODO [#A] lein-oxcart
+    Create an interface for using oxcart either standalone or via
+    leiningen to compile Clojure source to bytecode
+
+*** TODO [#A] Precondition coverage
+    is woeful at best, go back and add appropriate coverage
+
+*** TODO [#A] Namespace level emitter
+    CLOCK: [2014-06-16 Mon 12:09]--[2014-06-16 Mon 12:33] =>  0:24
+    CLOCK: [2014-06-13 Fri 12:46]--[2014-06-13 Fri 19:00] =>  6:14
+    - Is one feasable?
+
+*** TODO [#A] Whole program level emitter
+    - Is one feasable?
+
+*** TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
+*** TODO ^:static reading
+    :PROPERTIES:
+    :ID:       21b36fc7-6ea8-4aa2-b22f-24c40a0e772f
+    :END:
+    tbaldridge said Rich has previously implemented a lot of this
+    stuff, and that it has been reverted out for dubious
+    reasons. Tracking down what this was and when it happened would
+    probably be a good start to determining whether or not I can
+    reasonably make the requisite changes as part of GSoC.
+
+    [[https://github.com/clojure/clojure/commit/662b38415e15edcbd720628c0c07a8f8817c96b4][662b38415e15edcbd720628c0c07a8f8817c96b4]]
+      This commit added ^:static in the first place. ^:static was new
+      in 1.3, and was rapidly(?) removed according to tb. Probably
+      worth digging into the 1.3 tag's compiler and trying to find an
+      answer.
+
+    In Clojure versions 1.2 and earlier, all Vars had dynamic scope by
+    default, but this meant that there was a performance cost to look
+    up the current dynamic binding of a Var on every function
+    call. Leading up to 1.3, Rich Hickey experimented with allowing
+    Vars to be declared ^:static, before settling on static by default
+    with ^:dynamic as an option. You can still find ^:static
+    declarations littered through the Clojure source code. Maybe
+    someday they’ll be useful again.
+      [[http://stuartsierra.com/2013/03/29/perils-of-dynamic-scope]]
+
+    http://dev.clojure.org/display/design/%27Lean%27+Runtime
+    http://dev.clojure.org/display/design/Build+Profiles
+
+*** TODO Read up on InvokedPrim
+    :PROPERTIES:
+    :ID:       b9370d5f-2309-4ec4-a412-c1968398fb80
+    :END:
+    - Compare to the type perservation system in
+      [[https://github.com/clojure/clojure/commit/48bfe3bba0035f555a045ae4d2a5933ff57eea0a#diff-f17f860d14163523f1e1308ece478ddbR2983][48bfe3bba0035f555a045ae4d2a5933ff57eea0a]]
+
+    <Bronsa> arrdem: btw it looks like an approach like invokeStatic
+	     (assumed I understood this correctly) should be more
+	     robust for removing the var indirection rather than using
+	     ^:const because it should work fine with fn with
+	     closed-overs too
+    <hiredman> Bronsa: well, :static generated static methods, so
+	       closed overs wouldn't work
+    <Bronsa> hiredman: oh right
+    <Bronsa> arrdem: I derped. ^
+    <hiredman> Bronsa: you could just get rid of manual :static
+	       flagging, do λ lifting and implement any function that
+	       doesn't close over anything and is never used as a value
+	       as a static method
+    <hiredman> (you know, for the clojure compiler you are working on)
+
+*** TODO Reach set of classes
+    :PROPERTIES:
+    :ID:       b5b37568-1b78-4923-9fba-713501227f17
+    :END:
+    It would be very useful to be able to compute the reach set of a
+    given expression in terms of Java classes accessed. This would
+    allow me to simply ban clojure.lang.Var.alter and soforth as Java
+    methods rather than having to do the unsupported symbol warning at
+    the Clojure level. I'm not sure if t.a.jvm supports this but it's
+    worth asking.
+
+*** TODO Constant inliner pass
+
+*** TODO Multi-arity to single arity reduction
+
+*** TODO Called-by-what analysis pass
+    CLOCK: [2014-06-16 Mon 17:56]--[2014-06-16 Mon 18:04] =>  0:08
+
+*** TODO [#B] Static arity dispatch
+
+*** TODO [#B] Static arity elimination
+
+*** TODO [#B] Function as value analysis
+
+*** TODO [#B] Build Oxcart with itself
+
+*** TODO [#B] Multimethod precomputation
+    Statically identify multimethods as defs and cache final their
+    fully computed dispatch tables as static values discarding all
+    other manipulating operations.
+
+*** TODO [#B] Partial application reduction pass
+    Rewrite ((partial f a b ..) g h) → (f a b .. g h)
+
+*** TODO [#C] Implement compilation configurations & profiles
+    - Indicate preserved vars
+    - Preserve all vars
+    - Default of optimize everything
+    - Default of optimize nothing
+
+*** TODO [#C] Extend compilation profiles with symbol level annotations
+
+*** TODO [#C] Typechecking
+    Add `clojure.core.typed` annotations to all Oxcart code
+
+*** TODO [#D] Compiler introduced transients
+    Apply pointer analysis to structural sharing and attempt compiler
+    introduction of transients
+
+*** TODO [#D] core.typed integration
+    Interface with `clojure.core.typed` to provide compiler
+    introduction of `core.typed` derived records and runtime
+    typechecking
+
+*** DONE Defmacro discarding pass
+    CLOCK: [2014-06-16 Mon 09:29]--[2014-06-16 Mon 12:08] =>  2:39
+
+*** DONE Function as value analysis
+    CLOCK: [2014-06-16 Mon 13:30]--[2014-06-16 Mon 17:51] =>  4:21
+    CLOCK: [2014-06-16 Mon 13:05]--[2014-06-16 Mon 13:09] =>  0:04
+    CLOCK: [2014-06-16 Mon 12:33]--[2014-06-16 Mon 13:02] =>  0:29
+
+*** DONE How to use t.e.jvm to emit fragmentary bytecode sequences?
+    The answer is that you don't. I should plan on doing just about
+    everything I can at the function rewriting level rather than at
+    the bytecode munging level. That said, I should plan on hijacking
+    the method emission system from tools.emitter.jvm once I figure
+    out a way to get the
+
+*** DONE Implement lambda lifting
+
+*** DONE Implement tree shaking from lifted defs
+
+*** DONE Implement a whole program AST structure
+
+*** DONE Implement compiler warnings for unsupported forms & errors
+
+*** DONE Test coverage is not completely woeful
+
+** Notes
+*** AST structure
+    https://github.com/halgari/data-all-the-asts/blob/master/src/data_all_the_asts_talk/core.clj#L181
+    https://www.youtube.com/watch?v=KhRQmT22SSg
+
+    So there are several parts to a AST-as-data
+
+    :op       ;; allows for polymorphic dispatch on the node type
+    :form     ;; original un-analized form
+    :children ;; child nodes in "execution order"
+    :env      ;; a grab-bag of data about the context of the node
+
+*** Whole program AST
+    I need to be able to say that this var maps to that ast with that
+    reach set. Then I can say "collect all reach sets" into a single
+    sum reach set and then do var emission on that basis.
+
+    {#'clojure.core/conj -> (ast conj)
+     ...
+    }
+
+    To compute this whole program AST we're gonna have to do some
+    weirdness with clojure.core/load and clojure.core/eval to
+    interact with tools.analyzer. tools.analyzer.jvm isn't far behind
+    in all this but I don't think I need it yet.
+
+    The reality of the matter is that "lein uberjar" is how 99.9% of
+    Clojure applications get packaged and consequently whatever I
+    wind up with for an optimizing compier that faces the user is
+    gonna have to have a lein plugin of some sort which will run
+    my/Nicola's compiler over the input fileset as determined by the
+    same logic that lein uses to determine what gets uberjared.
+
+*** Clojure core symbol blacklist
+    - clojure.lang.Var.alterRoot()
+    - clojure.lang.Var.alter()
+    - clojure.lang.Var.set()
+    - clojure.core/alter-var-root
+    - clojure.core/set! (compiler special form)
+
+    The form (clojure.lang.Var/set <X>) analyzes down to
+
+    #+BEGIN_SRC clojure
+      (defn clear-env [ast]
+	(clojure.tools.analyzer.ast/prewalk
+	 ast #(dissoc %1 :env)))
+
+      (use 'clojure.pprint)
+
+      (->> (clojure.tools.analyzer.jvm.core-test/ast1
+	    (fn [x]
+	      (clojure.lang.Var/set x (Long. 1))))
+	   clear-env
+	   pprint)
+
+      ;; {:top-level true,
+      ;;  :children [:methods],
+      ;;  :op :fn,
+      ;;  :form (fn* ([x] (clojure.lang.Var/set x (Long. 1)))),
+      ;;  :variadic? false,
+      ;;  :max-fixed-arity 1,
+      ;;  :methods
+      ;;  [{:children [:params :body],
+      ;;    :loop-id loop_7404,
+      ;;    :params
+      ;;    [{:form x,
+      ;;      :name x,
+      ;;      :variadic? false,
+      ;;      :op :binding,
+      ;;      :arg-id 0,
+      ;;      :local :arg}],
+      ;;    :fixed-arity 1,
+      ;;    :op :fn-method,
+      ;;    :variadic? false,
+      ;;    :form ([x] (clojure.lang.Var/set x (Long. 1))),
+      ;;    :body
+      ;;    {:body? true,
+      ;;     :op :do,
+      ;;     :form (do (clojure.lang.Var/set x (Long. 1))),
+      ;;     :statements [],
+      ;;     :ret
+      ;;     {:children [:target :args],
+      ;;      :args
+      ;;      [{:children [],
+      ;;        :assignable? false,
+      ;;        :form x,
+      ;;        :name x,
+      ;;        :variadic? false,
+      ;;        :op :local,
+      ;;        :arg-id 0,
+      ;;        :local :arg}
+      ;;       {:op :new,
+      ;;        :form (new Long 1),
+      ;;        :class Long,
+      ;;        :args
+      ;;        [{:op :const, :type :number, :literal? true, :val 1, :form 1}],
+      ;;        :children [:args]}],
+      ;;      :method set,
+      ;;      :op :host-call,
+      ;;      :form (. clojure.lang.Var (set x (Long. 1))),
+      ;;      :target
+      ;;      {:op :const,
+      ;;       :type :class,
+      ;;       :literal? true,
+      ;;       :val clojure.lang.Var,
+      ;;       :form clojure.lang.Var}},
+      ;;     :children [:statements :ret]}}],
+      ;;  :once false}
+    #+END_SRC
+
+    So to find this host interop expression we're looking for this
+    structure in the analysis...
+
+    #+begin_example
+    {:op       :host-call
+     :method   set               ;; or any of #{set alter alterRoot}
+     :children [:target :args]
+     :args     <anything>        ;; no really we don't care
+     :target   {:op   :const
+		:type :class
+		:val  clojure.lang.Var}}
+    #+end_example
+
+    Alternatively if we analyze the source of
+    clojure.core/alter-var-root we see...
+
+    #+BEGIN_SRC clojure
+      (defn alter-var-root
+	"Atomically alters the root binding of var v by applying f to its
+	current value plus any args"
+	{:added "1.0"
+	 :static true}
+	[^clojure.lang.Var v f & args] (.alterRoot v f args))
+    #+END_SRC
+
+    which analyzes out to this key form... (. v (alterRoot f args))
+    or the t.a.jvm tree
+
+    #+begin_src clojure
+      clojure.tools.emitter.jvm> (->> (clojure.tools.analyzer.jvm.core-test/ast1
+				       (defn alter-var-root
+					 [^clojure.lang.Var v f & args]
+					 (.alterRoot v f args)))
+				      :init :methods first :body :ret :instance :tag)
+      clojure.lang.Var
+    #+end_src
+
+    Okay, so we have two cases here for ways that you can access
+    this blacklisted value, now we need a way to figure out what
+    blacklisted functions are.
+
+*** Compiler.java .class files
+    CLOCK: [2014-06-12 Thu 16:21]--[2014-06-12 Thu 19:06] =>  2:45
+    CLOCK: [2014-06-12 Thu 12:37]--[2014-06-12 Thu 16:21] =>  3:44
+    CLOCK: [2014-06-12 Thu 12:10]--[2014-06-12 Thu 12:37] =>  0:27
+    CLOCK: [2014-06-12 Thu 08:20]--[2014-06-12 Thu 12:10] =>  3:50
+    CLOCK: [2014-06-11 Wed 15:39]--[2014-06-11 Wed 17:52] =>  2:13
+    CLOCK: [2014-06-11 Wed 12:55]--[2014-06-11 Wed 12:57] =>  0:02
+    [[file:~/doc/hobby/programming/proj/clojure/core/src/jvm/clojure/lang/Compiler.java::void%20compile(String%20superName,%20String%5B%5D%20interfaceNames,%20boolean%20oneTimeUse)%20throws%20IOException%20{][Compiler.Expr.compile]] seems to do conditional classfile
+    generation, however most of the classfile generation is done by
+    [[file:~/doc/hobby/programming/proj/clojure/core/src/jvm/clojure/lang/Compiler.java::static%20void%20compile1(GeneratorAdapter%20gen,%20ObjExpr%20objx,%20Object%20form)%20{][Compiler.compile1]] and [[file:~/doc/hobby/programming/proj/clojure/core/src/jvm/clojure/lang/Compiler.java::public%20static%20Object%20compile(Reader%20rdr,%20String%20sourcePath,%20String%20sourceName)%20throws%20IOException%20{][Compiler.compile]]. The control flow path
+    seems to be that Compiler.compile invokes Compiler.compile1 which
+    invokes Expr.compile. Expr.compile then emits per-expression
+    classfiles (nested fn types etc.), Compiler.compile1 then emits a
+    top-level class for each form in the ns, and Compiler.compile
+    emits the loader class which links all of the above together.
+
+    The trick with Compiler.java is that Expr.compile is mutually
+    recursive with Compiler.compile1. What this means is that
+    per-emitted expression classfile generation is done in the
+    Expr.compile/Compiler.compile1 cycle.
+
+    The structure is that =Compiler.compile= seems to be that
+    Compiler.compile is the intended entry point, and it will generate
+    the *__init.class file. The =load()= method of __init.class is
+    populated by invoking Compiler.compile1 on each top level form of
+    the namespace being built. =Compiler.compile1= _for side effects_
+    invokes the =.emit()= operation on every read sub-expression,
+    which writes to a shared mutable classloader passed through from
+    =Compiler.compile=. =Compiler.compile= invokes =Compiler.compile1=
+    after beginning the visit of =init()=. This means that all
+    bytecode written by =.emit()= members is appended implicitly to
+    the bytecode of =*__init.class/load=.
+
+    For tejvm/-emit-loader it looks like I need to chase in-place
+    writes to the generator adapter parameter of Expr.emit(), with the
+    possibility that Expr.emit() somehow delays computation until it's
+    evaluated by Expr.eval().
+
+
+    [[file:~/doc/hobby/programming/proj/clojure/core/src/jvm/clojure/lang/Compiler.java::public%20void%20emit(C%20context,%20ObjExpr%20objx,%20GeneratorAdapter%20gen)%20{][Expr.emit]] is the key to all of this, since it handles the creation
+    of the loading & instantiation code. The expressions themselves
+    (via ObjExpr.emitLocal and ObjExpr.emitUnboxedLocal)
+
+
+**** Emit tree
+     #+BEGIN_SRC clojure
+       (defmulti -emit-loader :op)
+
+       (defmethod -emit-loader :AssignExpr
+	 ;; defers to either
+	 ;; - :InstanceFieldExpr
+	 ;; - :LocalBindingExpr
+	 ;; - :StaticFieldExpr
+	 ;; - :VarExpr
+	 )
+
+       (defmethod -emit-loader :HostExpr)
+
+       (defmethod -emit-loader :FieldExpr)
+       (defmethod -emit-loader :InstanceFieldExpr)
+       (defmethod -emit-loader :StaticFieldExpr)
+
+       (defmethod -emit-loader :MethodExpr)
+
+       (defmethod -emit-loader :IfExpr)
+       (defmethod -emit-loader :ImportExpr)
+       (defmethod -emit-loader :InstanceOfExpr)
+       (defmethod -emit-loader :InvokeExpr)
+       (defmethod -emit-loader :KeywordInvokeExpr)
+       (defmethod -emit-loader :LetExpr)
+       (defmethod -emit-loader :LetFnExpr)
+       (defmethod -emit-loader :ListExpr)
+
+       (defmethod -emit-loader :LiteralExpr)
+       (defmethod -emit-loader :BooleanExpr)
+       (defmethod -emit-loader :ConstantExpr)
+       (defmethod -emit-loader :KeywordExpr)
+       (defmethod -emit-loader :NilExpr)
+       (defmethod -emit-loader :NumberExpr)
+       (defmethod -emit-loader :StringExpr)
+
+       (defmethod -emit-loader :LocalBindingExpr)
+       (defmethod -emit-loader :MapExpr)
+       (defmethod -emit-loader :MetaExpr)
+       (defmethod -emit-loader :MethodParamExpr)
+       (defmethod -emit-loader :NewExpr)
+       (defmethod -emit-loader :ObjExpr)
+       (defmethod -emit-loader :RecurExpr)
+       (defmethod -emit-loader :SetExpr)
+       (defmethod -emit-loader :StaticInvokeExpr)
+       (defmethod -emit-loader :TheVarExpr)
+
+       (defmethod -emit-loader :UntypedExpr)
+       (defmethod -emit-loader :MonitorEnterExpr)
+       (defmethod -emit-loader :MonitorExitExpr)
+       (defmethod -emit-loader :ThrowExpr)
+
+       (defmethod -emit-loader :VarExpr)
+       (defmethod -emit-loader :VectorExpr)
+     #+END_SRC

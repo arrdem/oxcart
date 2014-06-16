@@ -11,7 +11,7 @@
   {:doc "Implementation of the Oxcart compiler & API."
    :added "0.0.1"
    :author "Reid McKenzie"}
-  (:refer-clojure :exclude [eval macroexpand-1 macroexpand load compile])
+  (:refer-clojure :exclude [eval macroexpand-1 macroexpand load compile gensym])
   (:require [clojure.tools.analyzer.jvm :as ana.jvm]
             [clojure.tools.analyzer
              :refer [macroexpand-1
@@ -47,6 +47,22 @@
 
 (defn atom? [x]
   (instance? clojure.lang.Atom x))
+
+
+(defn gensym
+  "(gensym) → Symbol
+   (gensym prefix ← String) → Symbol
+
+  Wrapper around clojure.core/gensym which adds metadata annotating
+  generated symbols and permitting distinction between generated and
+  user specified symbols."
+  ([]
+     (gensym "OG__"))
+
+  ([x]
+     (with-meta
+       (clojure.core/gensym x)
+       {:gensym true})))
 
 
 (defn eval
@@ -92,29 +108,28 @@
 
          ;; Bare expression handling
          ;; ----------------------------
-         (do (let [ast (-> mform
-                           (util/ast)
-                           (assoc :raw-form form
-                                  :raw-op   (when (list? form)
-                                              (first form))))]
-               ;; Add to the accumulator for the whole read program
-               ;;
-               ;; Builds a mapping of the form
-               (when (and forms
-                          (atom? forms))
-                 (swap! forms
-                        #(-> %1 
-                             (update-in [(.name *ns*) :forms]
-                                        concat [ast])
-                             (update-in [:modules]
-                                        (fn [x]
-                                          (conj (or x #{})
-                                                (.name *ns*))))))))
+         (do ;; Run the code for side-effects
+             (let [res (when (and eval?
+                                  (not (= 'clojure.core (.name *ns*))))
+                         (em.jvm/eval mform))]
 
-             ;; Run the code for side-effects
-             (when (and eval?
-                        (not (= 'clojure.core (.name *ns*))))
-               (em.jvm/eval mform)))))))
+               (let [ast (-> mform
+                             (util/ast))]
+
+                 ;; Add to the accumulator for the whole read program
+                 ;;
+                 ;; Builds a mapping of the form
+                 (when (and forms
+                            (atom? forms))
+                   (swap! forms
+                          #(-> %1
+                               (update-in [(.name *ns*) :forms]
+                                          concat [ast])
+                               (update-in [:modules]
+                                          (fn [x]
+                                            (conj (or x #{})
+                                                  (.name *ns*))))))))
+               res))))))
 
 
 (defn load
@@ -152,7 +167,8 @@
                  *file*               p
                  *load-configuration* options]
          (with-redefs [clojure.core/load    oxcart/load
-                       clojure.core/eval    oxcart/eval]
+                       clojure.core/eval    oxcart/eval
+                       clojure.core/gensym  oxcart/gensym]
            (loop []
              (let [form (r/read reader false eof)]
                (when (not= eof form)

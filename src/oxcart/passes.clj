@@ -69,15 +69,19 @@
 
   Updates every form in the given Whole-ast, replacing it with (apply
   f form args). Intended to eliminate repetitive Whole-AST
-  comprehensions in pass implementations."
+  comprehensions in pass implementations. Note that if a form is nil,
+  it will be discarded. Consequently this operation and anything built
+  atop it has the potential to be highly destructive."
   [whole-ast f & args]
   (-> whole-ast
       (update-modules
        (fn [module]
          (update module :forms 
                  (fn [forms]
-                   (mapv #(apply f %1 args)
-                         forms)))))))
+                   (->> forms
+                        (map #(apply f %1 args))
+                        (keep identity)
+                        (vec))))))))
 
 
 ;; Passes are then functions from Whole-ASTs to Whole-ASTs. For user

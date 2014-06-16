@@ -201,3 +201,30 @@
             "Errors were generated in checking."))
   (-> whole-ast
       (record-pass check-ops)))
+
+
+(defn check-top-level
+  "λ Whole-AST → options → Whole-AST
+
+  Traverses the argument AST on a form by form basis to make sure that
+  the program does not constitute a \"script\", for script defined to
+  be a Clojure program which uses top level forms for load time side
+  effects. Such programs, while valid Clojure, may not be supported by
+  all Oxcart emitters.
+
+  Options
+  -----------
+  This pass takes no options."
+  [whole-ast options]
+  (let [error? (atom false)]
+    (doseq [ast (whole-ast->forms whole-ast)]
+      (when-not (pattern/def? ast)
+        (reset! error? true)
+        (error (util/format-line-info ast)
+               ", Program makes use of non-def top level form!"))
+
+    (assert (not @error?)
+            "Errors were generated in checking."))
+
+    (-> whole-ast
+        (record-pass check-top-level))))

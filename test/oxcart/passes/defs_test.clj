@@ -10,7 +10,8 @@
 (ns oxcart.passes.defs-test
   (:require [oxcart]
             [oxcart.passes.defs :refer :all]
-            [oxcart.test-util :refer :all]
+            [oxcart.util :refer [ast]]
+            [oxcart.test-util :refer [is-not]]
             [clojure.set :refer :all]
             [clojure.test :refer :all]))
 
@@ -42,3 +43,14 @@
     (is (= #{'bar 'baz 'quxx 'blat} public))
     (is (= #{'quxx 'foo 'bar 'baz} const))
     (is (= #{'blat} dynamic))))
+
+
+(deftest locate-var-as-value-test
+  (let [{:keys [usage] :as ast}
+        (locate-var-as-value victim-ast {})]
+    (doseq [var [#'oxcart.passes.defs-test/foo
+                 #'oxcart.passes.defs-test/quxx
+                 #'oxcart.passes.defs-test/bar
+                 #'oxcart.passes.defs-test/blat]]
+      (is (= (usage var) :value)))
+    (is (= :target (usage #'clojure.core/mod)))))
