@@ -134,3 +134,33 @@
     (-> ast
         (trim-with-emit-set emit-set)
         (clobber-passes))))
+
+
+(defn analyze-var-uses
+  "λ Whole-AST → Options → Whole-AST
+
+  Walks the argument AST, accumulating call site information about
+  vars. Returns an updated Whole-AST which has the `:var-uses' key
+  set, being a map {Var → #{Var}} where each var maps to the set of
+  vars it is used by.
+
+  Options
+  -----------
+    This pass takes no options"
+  [whole-ast options]
+  (let [{:keys [dependency-map] :as whole-ast}
+        (-> whole-ast
+            (require-pass analyze-var-dependencies {}))
+        acc  (atom {})
+        sconj #(conj (or %1 #{}) %2)]
+
+    ;; FIXME
+    ;;   There's probably a way to write this comprehension which is
+    ;;   more efficient, but this works for now.
+    (doseq [[var deps] dependency-map
+            dep  deps]
+      (swap! acc update-in [dep] sconj var))
+
+    (-> whole-ast
+        (assoc :var-uses @acc)
+        (record-pass analyze-var-uses))))
