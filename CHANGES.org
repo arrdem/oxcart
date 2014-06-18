@@ -1,4 +1,67 @@
-* 0.0.8
+* 0.0.10
+  - Fix #3, implement called by what analysis
+  
+* 0.0.9
   - Fix #6, implement var as value analysis
   - Fix #7, implement a gensym wrapper with metadata
   - Fix #9, implement macro discarding
+
+* Prior to 0.0.9
+** DONE Called-by-what analysis pass
+   CLOCK: [2014-06-17 Tue 12:36]--[2014-06-17 Tue 14:05] =>  1:29
+   CLOCK: [2014-06-16 Mon 17:56]--[2014-06-16 Mon 18:04] =>  0:08
+
+** DONE Whole program AST
+   CLOCK: [2014-05-21 Wed 10:33]--[2014-05-21 Wed 14:06] =>  3:33
+   CLOCK: [2014-05-16 Fri 14:21]--[2014-05-16 Fri 14:55] =>  0:34
+   CLOCK: [2014-05-15 Thu 14:11]--[2014-05-15 Thu 19:52] =>  5:41
+   :PROPERTIES:
+   :ID:       5d11410f-13d0-4bbb-a327-51bb336a6cc8
+   :END:
+
+** DONE Lambda lifting
+   CLOCK: [2014-05-30 Fri 17:58]--[2014-05-30 Fri 17:58] =>  0:00
+   CLOCK: [2014-05-30 Fri 15:49]--[2014-05-30 Fri 17:58] =>  2:09
+   CLOCK: [2014-05-30 Fri 10:34]--[2014-05-30 Fri 15:49] =>  5:15
+
+** DONE Def location
+   CLOCK: [2014-05-22 Thu 10:57]--[2014-05-22 Thu 18:48] =>  7:51
+
+** DONE Static error detection
+   CLOCK: [2014-06-03 Tue 10:38]--[2014-06-03 Tue 16:38] =>  6:00
+
+** DONE Tree shaking
+   CLOCK: [2014-06-02 Mon 10:10]--[2014-06-02 Mon 20:02] =>  9:52
+   :PROPERTIES:
+   :ID:       b7410ff3-8952-4765-8ec2-5abe549d8b9e
+   :END:
+
+** DONE tools.emitter.jvm reading
+   CLOCK: [2014-05-20 Tue 12:52]--[2014-05-20 Tue 15:12] =>  2:20
+   CLOCK: [2014-05-20 Tue 10:55]--[2014-05-20 Tue 12:14] =>  1:19
+   CLOCK: [2014-05-19 Mon 13:15]--[2014-05-19 Mon 18:15] =>  5:00
+   :PROPERTIES:
+   :ID:       c4088d84-9011-414b-84d9-c5c55294cd35
+   :END:
+
+** DONE Tree shaking load
+   CLOCK: [2014-05-20 Tue 18:24]--[2014-05-20 Tue 22:20] =>  3:56
+   CLOCK: [2014-05-20 Tue 15:22]--[2014-05-20 Tue 16:55] =>  1:33
+   :PROPERTIES:
+   :ID:       0c0352b3-54f5-47f6-9a31-3f5fa4507ed5
+   :END:
+
+** DONE Defmacro discarding pass
+   CLOCK: [2014-06-16 Mon 09:29]--[2014-06-16 Mon 12:08] =>  2:39
+
+** DONE Function as value analysis
+   CLOCK: [2014-06-16 Mon 13:30]--[2014-06-16 Mon 17:51] =>  4:21
+   CLOCK: [2014-06-16 Mon 13:05]--[2014-06-16 Mon 13:09] =>  0:04
+   CLOCK: [2014-06-16 Mon 12:33]--[2014-06-16 Mon 13:02] =>  0:29
+
+** DONE Implement a whole program AST structure
+
+** DONE Implement compiler warnings for unsupported forms & errors
+
+** DONE Test coverage is not completely woeful
+

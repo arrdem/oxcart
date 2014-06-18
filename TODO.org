@@ -1,76 +1,30 @@
 * GSoC
+#+ARCHIVE: CHANGELOG::
+
   all time
    #+BEGIN: clocktable :maxlevel 2 :scope subtree
-   #+CAPTION: Clock summary at [2014-06-16 Mon 18:03]
-   | Headline          | Time      |         |
-   |-------------------+-----------+---------|
-   | *Total time*      | *4d 7:51* |         |
-   |-------------------+-----------+---------|
-   | GSoC              | 4d 7:51   |         |
-   | \__ Time tracking |           | 3d 4:39 |
-   | \__ TODOs         |           |   14:11 |
-   | \__ Notes         |           |   13:01 |
+   #+CAPTION: Clock summary at [2014-06-17 Tue 19:52]
+   | Headline                  | Time       |         |
+   |---------------------------+------------+---------|
+   | *Total time*              | *4d 15:29* |         |
+   |---------------------------+------------+---------|
+   | GSoC                      | 4d 15:29   |         |
+   | \__ Time tracking & TODOs |            | 4d 2:28 |
+   | \__ Notes                 |            |   13:01 |
    #+END:
 
    today
    #+BEGIN: clocktable :tstart "<-1d>" :tend "<now>"
-   #+CAPTION: Clock summary at [2014-06-16 Mon 18:03]
-   | Headline     | Time   |      |
-   |--------------+--------+------|
-   | *Total time* | *7:57* |      |
-   |--------------+--------+------|
-   | GSoC         | 7:57   |      |
-   | \__ TODOs    |        | 7:57 |
+   #+CAPTION: Clock summary at [2014-06-17 Tue 19:52]
+   | Headline                  | Time    |       |
+   |---------------------------+---------+-------|
+   | *Total time*              | *15:35* |       |
+   |---------------------------+---------+-------|
+   | GSoC                      | 15:35   |       |
+   | \__ Time tracking & TODOs |         | 15:35 |
    #+END: clocktable
 
-** Time tracking
-*** TODO Reading into the JVM
-    CLOCK: [2014-06-13 Fri 10:53]--[2014-06-13 Fri 12:29] =>  1:36
-
-*** DONE Whole program AST
-    CLOCK: [2014-05-21 Wed 10:33]--[2014-05-21 Wed 14:06] =>  3:33
-    CLOCK: [2014-05-16 Fri 14:21]--[2014-05-16 Fri 14:55] =>  0:34
-    CLOCK: [2014-05-15 Thu 14:11]--[2014-05-15 Thu 19:52] =>  5:41
-    :PROPERTIES:
-    :ID:       5d11410f-13d0-4bbb-a327-51bb336a6cc8
-    :END:
-
-*** DONE Lambda lifting
-    CLOCK: [2014-05-30 Fri 17:58]--[2014-05-30 Fri 17:58] =>  0:00
-    CLOCK: [2014-05-30 Fri 15:49]--[2014-05-30 Fri 17:58] =>  2:09
-    CLOCK: [2014-05-30 Fri 10:34]--[2014-05-30 Fri 15:49] =>  5:15
-
-*** DONE Def location
-    CLOCK: [2014-05-22 Thu 10:57]--[2014-05-22 Thu 18:48] =>  7:51
-
-*** DONE Static error detection
-    CLOCK: [2014-06-03 Tue 10:38]--[2014-06-03 Tue 16:38] =>  6:00
-
-*** DONE Tree shaking
-    CLOCK: [2014-06-02 Mon 10:10]--[2014-06-02 Mon 20:02] =>  9:52
-    :PROPERTIES:
-    :ID:       b7410ff3-8952-4765-8ec2-5abe549d8b9e
-    :END:
-
-*** DONE tools.emitter.jvm reading
-    CLOCK: [2014-05-20 Tue 12:52]--[2014-05-20 Tue 15:12] =>  2:20
-    CLOCK: [2014-05-20 Tue 10:55]--[2014-05-20 Tue 12:14] =>  1:19
-    CLOCK: [2014-05-19 Mon 13:15]--[2014-05-19 Mon 18:15] =>  5:00
-    :PROPERTIES:
-    :ID:       c4088d84-9011-414b-84d9-c5c55294cd35
-    :END:
-
-*** DONE Tree shaking load
-    CLOCK: [2014-05-20 Tue 18:24]--[2014-05-20 Tue 22:20] =>  3:56
-    CLOCK: [2014-05-20 Tue 15:22]--[2014-05-20 Tue 16:55] =>  1:33
-    :PROPERTIES:
-    :ID:       0c0352b3-54f5-47f6-9a31-3f5fa4507ed5
-    :END:
-
-*** TODO TEJVM classfile emitter
-    CLOCK: [2014-06-09 Mon 11:58]--[2014-06-10 Tue 07:58] => 20:00
-
-** TODOs
+** Time tracking & TODOs
 *** TODO [#A] Implement a reference Clojure compatibility mode
 
 *** TODO [#A] lein-oxcart
@@ -84,12 +38,39 @@
     CLOCK: [2014-06-16 Mon 12:09]--[2014-06-16 Mon 12:33] =>  0:24
     CLOCK: [2014-06-13 Fri 12:46]--[2014-06-13 Fri 19:00] =>  6:14
     - Is one feasable?
+    - Depends on [[Called-by-what analysis pass]] for fn to method
+      reduction correctness
+    - Depends on [[Multi-arity to single arity reduction]] for fn to
+      method reduction correctness
+    - Depends on [[Constant inliner pass]] to get the most out of
+      inlining, as this will enable more functions to be demoted to
+      methods from IFns.
+    - An issue is that namespaces are not really "modules" due to the
+      implementation of the =(ns)= macro which simply alters the state
+      of the var table mapping which constitutes a "namespace" through
+      the emission of require and use forms which create var table
+      side-effects. Since the idea with Oxcart is that all this var
+      table garbage _is_ garbage ideally I want to be able to escape
+      the var table altogether for the overwhelming majority of vars
+      to the point that it may make sense for each load() to do its
+      own explicit var table manipulation. The information required
+      for doing this could probably be derived from =(ns-map)= but
+      we'll see how that goes.
 
 *** TODO [#A] Whole program level emitter
     - Is one feasable?
 
 *** TODO [#A] Improve the whole program AST to a mutable object tree via transients for improved update semantics and performance
+    This is probably going to be a fun exercise in building a Cortext
+    style CES out of TANAL trees, identifying duplicated forms (vars,
+    locals) reducing them, returning the result for rewriting and then
+    providing an interface to render it back to a TANAL tree.
+
+    see https://www.refheap.com/86571 for the original cut of the code
+    in question, which could bear some major tightening up.
+
 *** TODO ^:static reading
+    CLOCK: [2014-06-17 Tue 18:13]--[2014-06-17 Tue 19:45] =>  1:32
     :PROPERTIES:
     :ID:       21b36fc7-6ea8-4aa2-b22f-24c40a0e772f
     :END:
@@ -100,20 +81,24 @@
     reasonably make the requisite changes as part of GSoC.
 
     [[https://github.com/clojure/clojure/commit/662b38415e15edcbd720628c0c07a8f8817c96b4][662b38415e15edcbd720628c0c07a8f8817c96b4]]
-      This commit added ^:static in the first place. ^:static was new
-      in 1.3, and was rapidly(?) removed according to tb. Probably
-      worth digging into the 1.3 tag's compiler and trying to find an
-      answer.
+      This commit added ^:static annotations all over the core and
+      cleaned up the core compiler support for it.
 
-    In Clojure versions 1.2 and earlier, all Vars had dynamic scope by
-    default, but this meant that there was a performance cost to look
-    up the current dynamic binding of a Var on every function
-    call. Leading up to 1.3, Rich Hickey experimented with allowing
-    Vars to be declared ^:static, before settling on static by default
-    with ^:dynamic as an option. You can still find ^:static
-    declarations littered through the Clojure source code. Maybe
-    someday they’ll be useful again.
-      [[http://stuartsierra.com/2013/03/29/perils-of-dynamic-scope]]
+    [[https://github.com/clojure/clojure/commit/ca737838aa65970775c58cd3a72fea4221a67bda][ca737838aa65970775c58cd3a72fea4221a67bda]]
+      This commit added ^:static compiler support in the first
+      place. Looks like all this did/does is create invokeStatic
+      methods on static tagged classes, allowing the compiler to
+      escape vars entirely for some subset of a program.
+
+    [[http://stuartsierra.com/2013/03/29/perils-of-dynamic-scope]] "In
+      Clojure versions 1.2 and earlier, all Vars had dynamic scope by
+      default, but this meant that there was a performance cost to
+      look up the current dynamic binding of a Var on every function
+      call. Leading up to 1.3, Rich Hickey experimented with allowing
+      Vars to be declared ^:static, before settling on static by
+      default with ^:dynamic as an option. You can still find ^:static
+      declarations littered through the Clojure source code. Maybe
+      someday they’ll be useful again."
 
     http://dev.clojure.org/display/design/%27Lean%27+Runtime
     http://dev.clojure.org/display/design/Build+Profiles
@@ -149,30 +134,119 @@
     allow me to simply ban clojure.lang.Var.alter and soforth as Java
     methods rather than having to do the unsupported symbol warning at
     the Clojure level. I'm not sure if t.a.jvm supports this but it's
-    worth asking.
+    worth asking. This is possible for static typing of classes but is
+    not generally possible. Thanks to type hints indicating var type
+    it may be possible to infer the banning of most of the clojure
+    core var manipulation code.
 
-*** TODO Constant inliner pass
+*** TODO [#B] Constant inliner pass
+    - Rewrite ((partial f a b ..) g h) → (f a b .. g h)
 
-*** TODO Multi-arity to single arity reduction
+    - Rewrite (partial f) → f
 
-*** TODO Called-by-what analysis pass
-    CLOCK: [2014-06-16 Mon 17:56]--[2014-06-16 Mon 18:04] =>  0:08
+    - General invoke inlining potentially.
+
+      : <Bronsa> arrdem: btw, RE: automatically adding :inline  [19:39]
+      : <arrdem> yar
+      : <Bronsa> do you realize that :inline points to a function, not a boolean?
+      : <arrdem> yeah which is unfortunate.
+      : <Bronsa> I mean, I guess you could just walk the macroexpanded fn body
+      :          wrapping all the args with clojure.core/unquote  [19:40]
+      : <Bronsa> but I'm not too sure how easy that would be to do
+      : <arrdem> well so the "real" fix is that you take the def'd fn, and then
+      :          partially evaluate it in the invoke context using the provided
+      :          arguments.
+      : <arrdem> so (f x) becomes ((fn [x] (+ 1 x)) x) which you can then do term
+      :          rewriting on  [19:41]
+      : <Bronsa> right
+      : <arrdem> which is entirely general so long as you know what code is pure and
+      :          can be rewritten...
+      : <arrdem> but we don't have purity tags either...
+      : <arrdem> but that's really just a bound on the partial evaluator not your
+      :          ability to replace {:invoke} with {:do}  [19:42]
+      : <arrdem> just create a {:op :let} with the appropriate bindings and let it go
+      :                                         [19:43]
+      : <*arrdem> adds this to the todo list
+
+      See the GHC paper on Haskell inlining for some awesome background
+
+    - Can apply ever be rewritten? (no)
+
+    - Are there non-function values that make sense to try and inline,
+      reduce or fold?
+
+*** TODO [#B] Multi-arity to single arity reduction
 
 *** TODO [#B] Static arity dispatch
+    - Walk the AST collecting the arities of fns and the arities of
+      call sites
+    - If a function is ever the target of an apply, it cannot be
+      lifted to methods or multiple functions as the arity cannot be
+      statically determined. Tag these fns and collect all others.
+    - Rewrite each fn into N fns of a single arity, updating the rest
+      of the AST as appropriate so that all invocations statically
+      dispatch to a single arity except where impossible due to
+      application of apply.
 
 *** TODO [#B] Static arity elimination
-
-*** TODO [#B] Function as value analysis
+    This should just be tree shaking re-applied after method to fn
+    lifting is applied, but the machinery for checking that fn
+    partitioning by arity is valid is probably relevant.
 
 *** TODO [#B] Build Oxcart with itself
+    This is probably pretty low priority, but I think it's something
+    that I'll get for free since Oxcart doesn't leverage anything
+    (yet) beyond the static subset of Clojure which I'm trying to
+    compile.
 
 *** TODO [#B] Multimethod precomputation
     Statically identify multimethods as defs and cache final their
     fully computed dispatch tables as static values discarding all
     other manipulating operations.
 
-*** TODO [#B] Partial application reduction pass
-    Rewrite ((partial f a b ..) g h) → (f a b .. g h)
+    This will also require hoisting defmethod forms to defn forms and
+    eliminating the generated method instalation code.
+
+*** TODO [#B] Hierarchy precomputation
+    Hierarchies are something else that could likely be precomputed
+    and stored, but maybe not since it's entirely meaningful to build
+    a hierarchy at runtime. Whatever, they're a weird and uncommon
+    language feature anyway.
+
+*** TODO [#B] TCO
+    No really. Basic TCO isn't that hard to do. More interesting
+    multiple function to state machine transforms could also be
+    valuable, but only if supported by bytecode generation. Multiple
+    fns get concatinated with appropriate state transition code
+    rewrites, but the state transition is a jump and the stack
+    configuration should be the same in a jump to a body as a call, so
+    this may be something I can get for free.
+
+    #+BEGIN_SRC
+    method a(args) = apply _gen a-id-const args
+    method b(args) = apply _gen b-id-const args
+    method c(args) = apply _gen c-id-const args
+
+    method _gen(id-const . args) =
+       case id-const:
+          a-id-const:
+	    .label a
+	    < a implementation >
+	  b-id-const:
+	    .label b
+	    < b implementation >
+	  c-id-const:
+	    .label c
+	    < c implementation >
+    #+END_SRC
+
+    Note that since all args are on the stack "jumping" from a to b or
+    whatever is entirely correct since the only consumed argument
+    stack value is the entry point ID. This means the argument stack
+    must be in function call order, which means generating naive
+    bytecode is correct. Similarly replacing tail calls in the block
+    with bytecode gotos is then correct because the stack must be in
+    call order otherwise the call would be invalid.
 
 *** TODO [#C] Implement compilation configurations & profiles
     - Indicate preserved vars
@@ -194,31 +268,19 @@
     introduction of `core.typed` derived records and runtime
     typechecking
 
-*** DONE Defmacro discarding pass
-    CLOCK: [2014-06-16 Mon 09:29]--[2014-06-16 Mon 12:08] =>  2:39
+*** Reading into the JVM
+    CLOCK: [2014-06-17 Tue 14:31]--[2014-06-17 Tue 16:01] =>  1:30
+    CLOCK: [2014-06-13 Fri 10:53]--[2014-06-13 Fri 12:29] =>  1:36
 
-*** DONE Function as value analysis
-    CLOCK: [2014-06-16 Mon 13:30]--[2014-06-16 Mon 17:51] =>  4:21
-    CLOCK: [2014-06-16 Mon 13:05]--[2014-06-16 Mon 13:09] =>  0:04
-    CLOCK: [2014-06-16 Mon 12:33]--[2014-06-16 Mon 13:02] =>  0:29
+*** Patching TANAL/TEJVM
+    CLOCK: [2014-06-17 Tue 16:01]--[2014-06-17 Tue 17:37] =>  1:36
+    CLOCK: [2014-06-17 Tue 11:20]--[2014-06-17 Tue 12:33] =>  1:13
 
-*** DONE How to use t.e.jvm to emit fragmentary bytecode sequences?
-    The answer is that you don't. I should plan on doing just about
-    everything I can at the function rewriting level rather than at
-    the bytecode munging level. That said, I should plan on hijacking
-    the method emission system from tools.emitter.jvm once I figure
-    out a way to get the
+**** TODO TEJVM classfile emitter
+     CLOCK: [2014-06-09 Mon 11:58]--[2014-06-10 Tue 07:58] => 20:00
 
-*** DONE Implement lambda lifting
-
-*** DONE Implement tree shaking from lifted defs
-
-*** DONE Implement a whole program AST structure
-
-*** DONE Implement compiler warnings for unsupported forms & errors
-
-*** DONE Test coverage is not completely woeful
-
+*** Bookkeeping
+    CLOCK: [2014-06-17 Tue 14:21]--[2014-06-17 Tue 14:31] =>  0:10
 ** Notes
 *** AST structure
     https://github.com/halgari/data-all-the-asts/blob/master/src/data_all_the_asts_talk/core.clj#L181
