@@ -134,3 +134,43 @@
     (-> ast
         (trim-with-emit-set emit-set)
         (clobber-passes))))
+
+
+(defn deps-to-uses
+  "λ {Var → #{Var}} → {Var → #{Var}}
+
+  Takes a mapping from vars to dependencies and computes the reverse
+  mapping, being vars to uses."
+  [deps-map]
+  (let [acc  (atom {})
+        sconj #(conj (or %1 #{}) %2)]
+    ;; FIXME
+    ;;   There's probably a way to write this comprehension which is
+    ;;   more efficient, but this works for now.
+    (doseq [[var deps] deps-map
+            dep  deps]
+      (swap! acc update-in [dep] sconj var))
+    @acc))
+
+
+(defn analyze-var-uses
+  "λ Whole-AST → Options → Whole-AST
+
+  Walks the argument AST, accumulating call site information about
+  vars. Returns an updated Whole-AST which has the `:var-used' and
+  `:var-reached' keys, being a map {Var → #{Var}} where each var maps
+  to the set of vars it is used by and the set of vars it is reached
+  by.
+
+  Options
+  -----------
+    This pass takes no options"
+  [whole-ast options]
+  (let [{:keys [dependency-map
+                reach-map]
+         :as whole-ast} (-> whole-ast
+                            (require-pass analyze-var-dependencies {}))]
+    (-> whole-ast
+        (assoc :var-used    (deps-to-uses dependency-map)
+               :var-reached (deps-to-uses reach-map))
+        (record-pass analyze-var-uses))))
