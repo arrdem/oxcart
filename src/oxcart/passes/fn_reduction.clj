@@ -39,7 +39,10 @@
   a bitch, munging symbols could happen."
   [sym arity vardic]
   (symbol
-   (str sym "$arity$" arity
+   (str sym "$arity$"
+        (if vardic
+          (- arity 2)
+          arity)
         (when vardic
           "+"))))
 
