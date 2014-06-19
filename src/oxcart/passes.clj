@@ -64,14 +64,26 @@
        (merge whole-ast)))
 
 
+(defn merge-vecs
+  [forms]
+  (reduce
+   (fn [acc e]
+     (if (vector? e)
+       (concat acc e)
+       (conj acc e)))
+   nil forms))
+
+
 (defn update-forms
   "λ Whole-AST → (λ Form → args * → Form) → args *
 
   Updates every form in the given Whole-ast, replacing it with (apply
   f form args). Intended to eliminate repetitive Whole-AST
-  comprehensions in pass implementations. Note that if a form is nil,
-  it will be discarded. Consequently this operation and anything built
-  atop it has the potential to be highly destructive."
+  comprehensions in pass implementations.
+
+  Note that if a form is nil, it will be discarded.
+  Note that if a form is a vector (presumably of forms) it will be
+  concatinated into the forms sequence."
   [whole-ast f & args]
   (-> whole-ast
       (update-modules
@@ -81,6 +93,7 @@
                    (->> forms
                         (map #(apply f %1 args))
                         (keep identity)
+                        (merge-vecs)
                         (vec))))))))
 
 
