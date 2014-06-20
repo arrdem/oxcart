@@ -3,25 +3,25 @@
 
   all time
    #+BEGIN: clocktable :maxlevel 2 :scope subtree
-   #+CAPTION: Clock summary at [2014-06-17 Tue 19:52]
-   | Headline                  | Time       |         |
-   |---------------------------+------------+---------|
-   | *Total time*              | *4d 15:29* |         |
-   |---------------------------+------------+---------|
-   | GSoC                      | 4d 15:29   |         |
-   | \__ Time tracking & TODOs |            | 4d 2:28 |
-   | \__ Notes                 |            |   13:01 |
+   #+CAPTION: Clock summary at [2014-06-19 Thu 19:36]
+   | Headline                  | Time       |          |
+   |---------------------------+------------+----------|
+   | *Total time*              | *2d 11:27* |          |
+   |---------------------------+------------+----------|
+   | GSoC                      | 2d 11:27   |          |
+   | \__ Time tracking & TODOs |            | 1d 22:26 |
+   | \__ Notes                 |            |    13:01 |
    #+END:
 
    today
    #+BEGIN: clocktable :tstart "<-1d>" :tend "<now>"
-   #+CAPTION: Clock summary at [2014-06-17 Tue 19:52]
+   #+CAPTION: Clock summary at [2014-06-19 Thu 19:36]
    | Headline                  | Time    |       |
    |---------------------------+---------+-------|
-   | *Total time*              | *15:35* |       |
+   | *Total time*              | *12:11* |       |
    |---------------------------+---------+-------|
-   | GSoC                      | 15:35   |       |
-   | \__ Time tracking & TODOs |         | 15:35 |
+   | GSoC                      | 12:11   |       |
+   | \__ Time tracking & TODOs |         | 12:11 |
    #+END: clocktable
 
 ** Time tracking & TODOs
@@ -90,9 +90,9 @@
       methods on static tagged classes, allowing the compiler to
       escape vars entirely for some subset of a program.
 
-    [[http://stuartsierra.com/2013/03/29/perils-of-dynamic-scope]] "In
-      Clojure versions 1.2 and earlier, all Vars had dynamic scope by
-      default, but this meant that there was a performance cost to
+    [[http://stuartsierra.com/2013/03/29/perils-of-dynamic-scope]]
+      "In Clojure versions 1.2 and earlier, all Vars had dynamic scope
+      by default, but this meant that there was a performance cost to
       look up the current dynamic binding of a Var on every function
       call. Leading up to 1.3, Rich Hickey experimented with allowing
       Vars to be declared ^:static, before settling on static by
@@ -174,24 +174,6 @@
 
     - Are there non-function values that make sense to try and inline,
       reduce or fold?
-
-*** TODO [#B] Multi-arity to single arity reduction
-
-*** TODO [#B] Static arity dispatch
-    - Walk the AST collecting the arities of fns and the arities of
-      call sites
-    - If a function is ever the target of an apply, it cannot be
-      lifted to methods or multiple functions as the arity cannot be
-      statically determined. Tag these fns and collect all others.
-    - Rewrite each fn into N fns of a single arity, updating the rest
-      of the AST as appropriate so that all invocations statically
-      dispatch to a single arity except where impossible due to
-      application of apply.
-
-*** TODO [#B] Static arity elimination
-    This should just be tree shaking re-applied after method to fn
-    lifting is applied, but the machinery for checking that fn
-    partitioning by arity is valid is probably relevant.
 
 *** TODO [#B] Build Oxcart with itself
     This is probably pretty low priority, but I think it's something

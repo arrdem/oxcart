@@ -64,14 +64,26 @@
        (merge whole-ast)))
 
 
+(defn merge-vecs
+  [forms]
+  (reduce
+   (fn [acc e]
+     (if (vector? e)
+       (concat acc e)
+       (conj acc e)))
+   nil forms))
+
+
 (defn update-forms
   "λ Whole-AST → (λ Form → args * → Form) → args *
 
   Updates every form in the given Whole-ast, replacing it with (apply
   f form args). Intended to eliminate repetitive Whole-AST
-  comprehensions in pass implementations. Note that if a form is nil,
-  it will be discarded. Consequently this operation and anything built
-  atop it has the potential to be highly destructive."
+  comprehensions in pass implementations.
+
+  Note that if a form is nil, it will be discarded.
+  Note that if a form is a vector (presumably of forms) it will be
+  concatinated into the forms sequence."
   [whole-ast f & args]
   (-> whole-ast
       (update-modules
@@ -81,6 +93,7 @@
                    (->> forms
                         (map #(apply f %1 args))
                         (keep identity)
+                        (merge-vecs)
                         (vec))))))))
 
 
@@ -126,3 +139,16 @@
 (defn clobber-passes
   [whole-ast]
   (assoc whole-ast :passes #{}))
+
+
+(defn update-through-meta
+  "(λ {A → B} → ((λ B → args*) → C) → args*) → {A → C}
+
+  A wrapper around oxcart.util/update which will reach through
+  {:op :with-meta} nodes as if they don't exist. This allows AST
+  transforms to do updates preserving with-meta operations without
+  explicitly handling the possibility of metadata."
+  [{:keys [op] :as ast} f & args]
+  (if (= op :with-meta)
+    (apply update ast :expr f args)
+    (apply f ast args)))
