@@ -220,10 +220,10 @@
 
   Walks the argument AST, rewriting invoke nodes where it is possible
   to call a previously emitted single arity function rather than a
-  decomposed multiple arity function by doing static arity resolution
-  defaulting to the variadic implementation if present and failing
-  back to the original unaltered function in all cases. Returns an
-  updated top level form."
+  multiple arity function by doing static arity resolution defaulting
+  to the variadic implementation if present and failing back to the
+  original unaltered function in all cases. Returns an updated top
+  level form."
   [top-ast munged-fns]
   (let [munged-fns @munged-fns]
     (postwalk top-ast
