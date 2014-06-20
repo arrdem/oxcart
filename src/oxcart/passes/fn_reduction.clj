@@ -17,6 +17,7 @@
             [oxcart.passes :refer :all]
             [oxcart.passes.lambda-lift :refer [lift-lambdas]]
             [oxcart.pattern :as pattern]
+            [clojure.tools.analyzer.ast :refer [postwalk]]
             [clojure.tools.analyzer.passes.jvm.emit-form :refer [emit-form]]))
 
 
@@ -34,17 +35,24 @@
 
 
 (defn munge-symbol
-  "Stub subject to change based on what TANAL permits, the issue is
-  going to be symbol vs. var type in the AST. Munging vars is gonna be
-  a bitch, munging symbols could happen."
-  [sym arity vardic]
+  [sym arity variadic]
   (symbol
    (str sym "$arity$"
-        (if vardic
+        (if variadic
           (- arity 2)
           arity)
-        (when vardic
+        (when variadic
           "+"))))
+
+
+(defn method-variadic?
+  [method]
+  (if (list? method)
+    (some (partial = '&) (first method))
+    (if (map? method)
+      (or (:variadic? method)
+          (some :variadic?
+                (:params method))))))
 
 
 (defn munge-fn-name
@@ -53,7 +61,7 @@
   (munge-symbol
    (pattern/def->symbol wrapping-def)
    (count params)
-   (some :vardic params)))
+   (method-variadic? method)))
 
 
 (defn munge-callsite
@@ -103,9 +111,9 @@
                                :when (not (= p '&))]
                            (gensym "OX__P"))
 
-       vardic?          (some (partial = '&) params)
+        variadic?          (some (partial = '&) params)
 
-        new-form         (if vardic?
+        new-form         (if variadic?
                            (list (vec (concat (butlast new-params) ['&] [(last new-params)]))
                                  (concat (list 'apply)
                                          (list (pattern/def->symbol promoted-method))
@@ -118,7 +126,10 @@
 
 
 (defn rewrite-fn
-  [{:keys [methods env] :as fn-ast} wrapping-def prefix-forms-atom]
+  [{:keys [methods env] :as fn-ast}
+   wrapping-def
+   prefix-forms-atom
+   munged-fns-atom]
   (if (not (or (pattern/fn? fn-ast)
                (fn-is-multiple-arity? fn-ast)))
     ast
@@ -144,6 +155,17 @@
                               (partial write-body wrapping-def)
                               methods
                               promotes)))]
+
+      (swap! munged-fns-atom
+             assoc (pattern/def->var wrapping-def)
+                   (->> (map (fn [m p]
+                               [(if (:variadic? (:init p))
+                                  :variadic
+                                  (count (first (:arglists p))))
+                                (pattern/def->var p)])
+                             methods
+                             promotes)
+                        (into {})))
 
       (reset! prefix-forms-atom
               (if name
@@ -174,12 +196,48 @@
   (if-not (pattern/def? ast)
     ast
     (let [top-level-forms (atom [])
-          new-fn-ast      (rewrite-fn (get ast :init)
-                                      ast top-level-forms)]
+          new-ast         (update ast :init
+                                  update-through-meta
+                                  rewrite-fn
+                                      ast
+                                      top-level-forms
+                                      munged-fns-atom)]
 
       (-> @top-level-forms
           vec
-          (conj (assoc ast :init new-fn-ast))))))
+          (conj new-ast)))))
+
+
+(defn var-name
+  [v]
+  (symbol
+   (-> v .ns ns-name str)
+   (-> v .sym str)))
+
+
+(defn rewrite-fn-invokes
+  "λ AST → (Atom {Var → {(U Number :variadic) → Var}}) → AST
+
+  Walks the argument AST, rewriting invoke nodes where it is possible
+  to call a previously emitted single arity function rather than a
+  decomposed multiple arity function by doing static arity resolution
+  defaulting to the variadic implementation if present and failing
+  back to the original unaltered function in all cases. Returns an
+  updated top level form."
+  [top-ast munged-fns]
+  (let [munged-fns @munged-fns]
+    (postwalk top-ast
+              (fn [{:keys [op fn args env] :as node}]
+                (if (and (= op :invoke)
+                         (= :var (:op fn)))
+                  (if-let [arities (munged-fns (-> fn :var))]
+                    (if-let [var (get munged-fns
+                                      (count args)
+                                      (get munged-fns :variadic))]
+                      (assoc node :fn (ast (var-name var) env))
+                      node)
+                    node)
+                  node)))))
 
 
 (defn reduce-fn-arities
@@ -209,6 +267,7 @@
         ;; FIXME
         ;;   Is this something I need to do? Are there cases in which
         ;;   this analysis is itself desructive? all existing fns,
-        ;;   defs and vars should be preserved by this.
+        ;;   defs and vars should be preserved by this, including all
+        ;;   metadata on them.
         (clobber-passes)
         (record-pass reduce-fn-arities))))
