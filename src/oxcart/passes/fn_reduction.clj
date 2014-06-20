@@ -97,7 +97,7 @@
                   (pattern/def->symbol wrapping-def)
                   (count (first raw-method))
                   (some (partial = '&) (first raw-method)))]
-    (ast `(def ~new-name
+    (ast `(def ^:single ^:static ~new-name
             (fn* ~raw-method))
          env)))
 
@@ -193,7 +193,9 @@
   bound with defs, as by the requirement of lambda lifting this must
   be the set of all fns in the input program."
   [ast munged-fns-atom]
-  (if-not (pattern/def? ast)
+  (if-not (and (pattern/def? ast)
+               (not (contains? @munged-fns-atom
+                               (pattern/def->var ast))))
     ast
     (let [top-level-forms (atom [])
           new-ast         (update ast :init
@@ -229,7 +231,7 @@
     (postwalk top-ast
               (fn [{:keys [op fn args env] :as node}]
                 (if (and (= op :invoke)
-                         (= :var (:op fn)))
+                         (#{:var :the-var} (:op fn)))
                   (if-let [arities (munged-fns (-> fn :var))]
                     (if-let [var (get munged-fns
                                       (count args)
@@ -258,16 +260,11 @@
   Options
   -----------
     This pass takes no options"
-  [whole-ast options]
-  (let [munged-fns (atom #{})]
+  [{:keys [arity-reduction-map] :as whole-ast} options]
+  (let [munged-fns (atom arity-reduction-map)]
     (-> whole-ast
         (require-pass lift-lambdas)
         (update-forms rewrite-fn-decls   munged-fns)
         (update-forms rewrite-fn-invokes munged-fns)
-        ;; FIXME
-        ;;   Is this something I need to do? Are there cases in which
-        ;;   this analysis is itself desructive? all existing fns,
-        ;;   defs and vars should be preserved by this, including all
-        ;;   metadata on them.
-        (clobber-passes)
+        (assoc :arity-reduction-map @munged-fns)
         (record-pass reduce-fn-arities))))
