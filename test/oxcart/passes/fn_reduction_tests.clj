@@ -66,4 +66,29 @@
                  @forms)
                (reduce-fn-arities {})
                (eclj/emit-clojure {})
-               (eval))))))
+               (eval)))))
+
+  ;; Recurs through name which shadows def
+  ;; -----------------------------------------
+  (let [case '(do (def quxx 
+                    (fn [x] 5))
+
+                  (def foo
+                    (fn quxx
+                      ([x]   3)
+                      ([x y] (quxx x))))
+
+                  [(map foo (range 10))
+                   (foo 3)
+                   (quxx 4)])]
+
+    (is (= (eval case)
+           (oxcart/eval case)
+           (-> (let [forms (atom {})]
+                 (oxcart/eval case {:forms forms})
+                 @forms)
+               (reduce-fn-arities {})
+               (eclj/emit-clojure {})
+               (eval)))))
+
+  )

@@ -111,27 +111,40 @@
   (if (not (or (pattern/fn? fn-ast)
                (fn-is-multiple-arity? fn-ast)))
     ast
-    (let [[_fn & methods] (emit-form fn-ast)
-          [name methods]  (take-when symbol? methods)
+    (let [[def-ast methods env]
+          (if-let [fn-name (-> fn-ast :local :name)]
+            ;; everything goes to shit and we need to do extra bindings work
+            (let [new-name (gensym "OX__L")
 
-          fdecl    (when name
-                     (ast `(def ~name ~(pattern/def->symbol wrapping-def))
-                          env))
+                  def-ast  (ast `(def ~new-name
+                                      ~(pattern/def->symbol wrapping-def))
+                                env)
+
+                  fn-ast (postwalk fn-ast
+                                   (fn [{:keys [op name] :as node}]
+                                     (if (and (= op :local)
+                                              (= name fn-name))
+                                       (ast new-name env)
+                                       node)))
+
+                  [_fn & methods] (emit-form fn-ast)
+                  [name methods]  (take-when symbol? methods)]
+              [def-ast methods (:env def-ast)])
+
+            ;; this is the easy case because we don't have to rewrite
+            ;; the fn body before we get the methods.
+            (let [[_fn & methods] (emit-form fn-ast)
+                  [name methods]  (take-when symbol? methods)]
+              [nil methods env]))
 
           promotes (mapv (fn [m]
                            (promote-method wrapping-def m env))
                          methods)
 
-          new-fn   (if name
-                     `(fn* ~name
-                           ~@(map
-                              (partial write-body wrapping-def)
-                              methods
-                              promotes))
-                     `(fn* ~@(map
-                              (partial write-body wrapping-def)
-                              methods
-                              promotes)))]
+          new-fn   `(fn* ~@(map
+                            (partial write-body wrapping-def)
+                            methods
+                            promotes))]
 
       (swap! munged-fns-atom
              assoc (pattern/def->var wrapping-def)
@@ -144,10 +157,7 @@
                              promotes)
                         (into {})))
 
-      (reset! prefix-forms-atom
-              (if name
-                (cons fdecl promotes)
-                promotes))
+      (reset! prefix-forms-atom (vec (cons def-ast promotes)))
 
       (ast new-fn env))))
 
