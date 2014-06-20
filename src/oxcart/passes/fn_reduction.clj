@@ -201,13 +201,6 @@
           (conj new-ast)))))
 
 
-(defn var-name
-  [v]
-  (symbol
-   (-> v .ns ns-name str)
-   (-> v .sym str)))
-
-
 (defn rewrite-fn-invokes
   "λ AST → (Atom {Var → {(U Number :variadic) → Var}}) → AST
 
