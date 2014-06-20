@@ -92,6 +92,4 @@
                  @forms)
                (reduce-fn-arities {})
                (eclj/emit-clojure {})
-               (eval)))))
-
-  )
+               (eval))))))
