@@ -64,15 +64,6 @@
    (method-variadic? method)))
 
 
-(defn munge-callsite
-  "λ Invoke-AST → Invoke-AST
-
-  This function rewrites invoke AST nodes, returning a new invoke node
-  which targets an arity munged function."
-  [ast]
-  )
-
-
 (defn fn-is-multiple-arity?
   "λ AST → Boolean
 
