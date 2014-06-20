@@ -3,25 +3,25 @@
 
   all time
    #+BEGIN: clocktable :maxlevel 2 :scope subtree
-   #+CAPTION: Clock summary at [2014-06-17 Tue 19:52]
-   | Headline                  | Time       |         |
-   |---------------------------+------------+---------|
-   | *Total time*              | *4d 15:29* |         |
-   |---------------------------+------------+---------|
-   | GSoC                      | 4d 15:29   |         |
-   | \__ Time tracking & TODOs |            | 4d 2:28 |
-   | \__ Notes                 |            |   13:01 |
+   #+CAPTION: Clock summary at [2014-06-19 Thu 19:36]
+   | Headline                  | Time       |          |
+   |---------------------------+------------+----------|
+   | *Total time*              | *2d 11:27* |          |
+   |---------------------------+------------+----------|
+   | GSoC                      | 2d 11:27   |          |
+   | \__ Time tracking & TODOs |            | 1d 22:26 |
+   | \__ Notes                 |            |    13:01 |
    #+END:
 
    today
    #+BEGIN: clocktable :tstart "<-1d>" :tend "<now>"
-   #+CAPTION: Clock summary at [2014-06-17 Tue 19:52]
+   #+CAPTION: Clock summary at [2014-06-19 Thu 19:36]
    | Headline                  | Time    |       |
    |---------------------------+---------+-------|
-   | *Total time*              | *15:35* |       |
+   | *Total time*              | *12:11* |       |
    |---------------------------+---------+-------|
-   | GSoC                      | 15:35   |       |
-   | \__ Time tracking & TODOs |         | 15:35 |
+   | GSoC                      | 12:11   |       |
+   | \__ Time tracking & TODOs |         | 12:11 |
    #+END: clocktable
 
 ** Time tracking & TODOs
@@ -175,10 +175,14 @@
     - Are there non-function values that make sense to try and inline,
       reduce or fold?
 
-*** TODO [#B] Multi-arity to single arity reduction
-    CLOCK: [2014-06-18 Wed 11:40]--[2014-06-19 Wed 19:00]
+*** DONE [#B] Multi-arity to single arity reduction
+    CLOCK: [2014-06-19 Thu 19:47]
+    CLOCK: [2014-06-19 Thu 19:36]--[2014-06-19 Thu 19:42] =>  0:06
+    CLOCK: [2014-06-19 Thu 16:34]--[2014-06-19 Thu 19:35] =>  3:01
+    CLOCK: [2014-06-19 Thu 11:05]--[2014-06-19 Thu 13:35] =>  2:30
+    CLOCK: [2014-06-18 Wed 11:40]--[2014-06-18 Wed 18:20] =>  6:40
 
-*** TODO [#B] Static arity dispatch
+*** DONE [#B] Static arity dispatch
     - Walk the AST collecting the arities of fns and the arities of
       call sites
     - If a function is ever the target of an apply, it cannot be
