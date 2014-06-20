@@ -113,7 +113,6 @@
     ast
     (let [[_fn & methods] (emit-form fn-ast)
           [name methods]  (take-when symbol? methods)
-          name            (pattern/def->symbol fn-ast)
 
           fdecl    (when name
                      (ast `(def ~name ~(pattern/def->symbol wrapping-def))
@@ -234,7 +233,7 @@
   [{:keys [arity-reduction-map] :as whole-ast} options]
   (let [munged-fns (atom arity-reduction-map)]
     (-> whole-ast
-        (require-pass lift-lambdas)
+        (require-pass lift-lambdas {})
         (update-forms rewrite-fn-decls   munged-fns)
         (update-forms rewrite-fn-invokes munged-fns)
         (assoc :arity-reduction-map @munged-fns)
