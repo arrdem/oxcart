@@ -21,6 +21,7 @@
   (let [case '(do (def foo
                     (fn ([x]   x)
                        ([x y] y)))
+
                   [(foo 3 5)
                    (foo 3)])]
 
@@ -38,6 +39,7 @@
   (let [case '(do (def foo
                     (fn ([x]   x)
                        ([x y] y)))
+
                   [(map foo (range 10))
                    (foo 3)])]
 
@@ -56,6 +58,7 @@
                     (fn quxx
                       ([x]   3)
                       ([x y] (quxx x))))
+
                   [(map foo (range 10))
                    (foo 3)])]
 

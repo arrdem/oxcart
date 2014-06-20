@@ -74,7 +74,8 @@
   (let [new-name (munge-symbol
                   (pattern/def->symbol wrapping-def)
                   (count (first raw-method))
-                  (some (partial = '&) (first raw-method)))]
+                  (some (partial = '&)
+                        (first raw-method)))]
     (ast `(def ^:single ^:static ~new-name
             (fn* ~raw-method))
          env)))
