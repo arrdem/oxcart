@@ -175,29 +175,6 @@
     - Are there non-function values that make sense to try and inline,
       reduce or fold?
 
-*** DONE [#B] Multi-arity to single arity reduction
-    CLOCK: [2014-06-19 Thu 19:47]
-    CLOCK: [2014-06-19 Thu 19:36]--[2014-06-19 Thu 19:42] =>  0:06
-    CLOCK: [2014-06-19 Thu 16:34]--[2014-06-19 Thu 19:35] =>  3:01
-    CLOCK: [2014-06-19 Thu 11:05]--[2014-06-19 Thu 13:35] =>  2:30
-    CLOCK: [2014-06-18 Wed 11:40]--[2014-06-18 Wed 18:20] =>  6:40
-
-*** DONE [#B] Static arity dispatch
-    - Walk the AST collecting the arities of fns and the arities of
-      call sites
-    - If a function is ever the target of an apply, it cannot be
-      lifted to methods or multiple functions as the arity cannot be
-      statically determined. Tag these fns and collect all others.
-    - Rewrite each fn into N fns of a single arity, updating the rest
-      of the AST as appropriate so that all invocations statically
-      dispatch to a single arity except where impossible due to
-      application of apply.
-
-*** TODO [#B] Static arity elimination
-    This should just be tree shaking re-applied after method to fn
-    lifting is applied, but the machinery for checking that fn
-    partitioning by arity is valid is probably relevant.
-
 *** TODO [#B] Build Oxcart with itself
     This is probably pretty low priority, but I think it's something
     that I'll get for free since Oxcart doesn't leverage anything
