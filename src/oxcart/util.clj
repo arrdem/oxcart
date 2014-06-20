@@ -115,3 +115,10 @@
   ([pred error v]
      (if (pred v) v
          (assert false error))))
+
+
+(defn var-name
+  [v]
+  (symbol
+   (-> v .ns ns-name str)
+   (-> v .sym str)))
