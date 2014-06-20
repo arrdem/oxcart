@@ -90,9 +90,9 @@
       methods on static tagged classes, allowing the compiler to
       escape vars entirely for some subset of a program.
 
-    [[http://stuartsierra.com/2013/03/29/perils-of-dynamic-scope]] "In
-      Clojure versions 1.2 and earlier, all Vars had dynamic scope by
-      default, but this meant that there was a performance cost to
+    [[http://stuartsierra.com/2013/03/29/perils-of-dynamic-scope]]
+      "In Clojure versions 1.2 and earlier, all Vars had dynamic scope
+      by default, but this meant that there was a performance cost to
       look up the current dynamic binding of a Var on every function
       call. Leading up to 1.3, Rich Hickey experimented with allowing
       Vars to be declared ^:static, before settling on static by
@@ -176,6 +176,7 @@
       reduce or fold?
 
 *** TODO [#B] Multi-arity to single arity reduction
+    CLOCK: [2014-06-18 Wed 11:40]--[2014-06-19 Wed 19:00]
 
 *** TODO [#B] Static arity dispatch
     - Walk the AST collecting the arities of fns and the arities of

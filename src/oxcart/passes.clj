@@ -139,3 +139,16 @@
 (defn clobber-passes
   [whole-ast]
   (assoc whole-ast :passes #{}))
+
+
+(defn update-through-meta
+  "(λ {A → B} → ((λ B → args*) → C) → args*) → {A → C}
+
+  A wrapper around oxcart.util/update which will reach through
+  {:op :with-meta} nodes as if they don't exist. This allows AST
+  transforms to do updates preserving with-meta operations without
+  explicitly handling the possibility of metadata."
+  [{:keys [op] :as ast} f & args]
+  (if (= op :with-meta)
+    (apply update ast :expr f args)
+    (apply f ast args)))
