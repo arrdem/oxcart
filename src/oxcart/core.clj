@@ -127,7 +127,7 @@
                    (swap! forms
                           #(-> %1
                                (update-in [(.name *ns*) :forms]
-                                          concat [ast])
+                                          (comp vec concat) [ast])
                                (update-in [:modules]
                                           (fn [x]
                                             (conj (or x #{})
