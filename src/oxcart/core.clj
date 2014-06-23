@@ -7,7 +7,7 @@
 ;;   bound by the terms of this license.  You must not remove this
 ;;   notice, or any other, from this software.
 
-(ns oxcart
+(ns oxcart.core
   {:doc "Implementation of the Oxcart compiler & API."
    :added "0.0.1"
    :author "Reid McKenzie"}
@@ -166,9 +166,9 @@
        (binding [*ns*                 *ns*
                  *file*               p
                  *load-configuration* options]
-         (with-redefs [clojure.core/load    oxcart/load
-                       clojure.core/eval    oxcart/eval
-                       clojure.core/gensym  oxcart/gensym]
+         (with-redefs [clojure.core/load    oxcart.core/load
+                       clojure.core/eval    oxcart.core/eval
+                       clojure.core/gensym  oxcart.core/gensym]
            (loop []
              (let [form (r/read reader false eof)]
                (when (not= eof form)

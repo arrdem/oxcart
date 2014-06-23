@@ -8,7 +8,7 @@
 ;;   notice, or any other, from this software.
 
 (ns oxcart.passes.defs-test
-  (:require [oxcart]
+  (:require [oxcart.core :as oxcart]
             [oxcart.passes.defs :refer :all]
             [oxcart.util :refer [ast]]
             [oxcart.test-util :refer [is-not]]

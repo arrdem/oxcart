@@ -8,7 +8,7 @@
 ;;   notice, or any other, from this software.
 
 (ns oxcart.passes.fn-reduction-tests
-  (:require [oxcart :as o]
+  (:require [oxcart.core :as oxcart]
             [oxcart.passes.fn-reduction :refer :all]
             [oxcart.passes.emit-clj :as eclj]
             [oxcart.test-util :refer [is-not]]
