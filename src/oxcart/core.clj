@@ -30,6 +30,9 @@
 (def root-directory
   @#'clojure.core/root-directory)
 
+(def clojure-gensym
+  @#'clojure.core/gensym)
+
 
 (def ^:dynamic *load-configuration*
   "Dynamic var that oxcart/load uses to stash its configuration.
@@ -61,7 +64,7 @@
 
   ([x]
      (with-meta
-       (clojure.core/gensym x)
+       (clojure-gensym x)
        {:gensym true})))
 
 
