@@ -68,9 +68,9 @@
   [forms]
   (reduce
    (fn [acc e]
-     (if (vector? e)
-       (concat acc e)
-       (conj acc e)))
+     (concat acc
+             (if (vector? e)
+               e [e])))
    nil forms))
 
 
