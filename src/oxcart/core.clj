@@ -166,9 +166,9 @@
        (binding [*ns*                 *ns*
                  *file*               p
                  *load-configuration* options]
-         (with-redefs [clojure.core/load    oxcart.core/load
-                       clojure.core/eval    oxcart.core/eval
-                       clojure.core/gensym  oxcart.core/gensym]
+         (with-redefs [clojure.core/load   oxcart.core/load
+                       clojure.core/eval   oxcart.core/eval
+                       clojure.core/gensym oxcart.core/gensym]
            (loop []
              (let [form (r/read reader false eof)]
                (when (not= eof form)
