@@ -53,8 +53,8 @@
 
 
 (defn gensym
-  "(gensym) → Symbol
-   (gensym prefix ← String) → Symbol
+  "(λ) → Symbol
+   (λ String) → Symbol
 
   Wrapper around clojure.core/gensym which adds metadata annotating
   generated symbols and permitting distinction between generated and
@@ -69,8 +69,8 @@
 
 
 (defn eval
-  "λ form → value
-   λ form → config-map → value
+  "(λ form) → value
+   (λ form → config-map) → value
 
   Form is any Clojure sexpr, config map is a load configuration and
   value is an arbitrary Clojure value or class.
@@ -136,8 +136,8 @@
 
 
 (defn load
-  "λ String → nil
-   λ String → config-map → nil
+  "(λ String) → nil
+   (λ String) → config-map → nil
 
   Loads a resource on the classpath identified by a string path as
   clojure code via eval for side-effects against the invoking Clojure
