@@ -181,14 +181,6 @@
     (yet) beyond the static subset of Clojure which I'm trying to
     compile.
 
-*** TODO [#B] Multimethod precomputation
-    Statically identify multimethods as defs and cache final their
-    fully computed dispatch tables as static values discarding all
-    other manipulating operations.
-
-    This will also require hoisting defmethod forms to defn forms and
-    eliminating the generated method instalation code.
-
 *** TODO [#B] Hierarchy precomputation
     Hierarchies are something else that could likely be precomputed
     and stored, but maybe not since it's entirely meaningful to build
@@ -230,6 +222,34 @@
     with bytecode gotos is then correct because the stack must be in
     call order otherwise the call would be invalid.
 
+*** TODO [#C] Partial evaluation of map
+    Creating partially evaluated specializations of map and other
+    clojure core functions that are specialized on a function
+
+*** TODO [#C] InvokeDynamic
+    - The spec has changed
+    - The performance has changed
+    - It may or may not be worthwhile 
+
+*** TODO [#C] Multimethod precomputation
+    Statically identify multimethods as defs and cache final their
+    fully computed dispatch tables as static values discarding all
+    other manipulating operations.
+
+    This will also require hoisting defmethod forms to defn forms and
+    eliminating the generated method instalation code.
+
+    Note that internally multimethods use a table of dispatch values
+    to IFns, so doing this will require computing an inverse mapping
+    from IFns to Vars, and then writing a new root function which
+    holds the dispatch table as a static value.
+
+*** TODO [#C] Multimethod static dispatch
+    Given that I'm already proposing to precompute multimethods
+    dispatch tables it'd be cool to try and look through the resulting
+    table and try to precompute the dispatch target of a given
+    multimethod use.
+
 *** TODO [#C] Implement compilation configurations & profiles
     - Indicate preserved vars
     - Preserve all vars
@@ -263,6 +283,10 @@
 
 *** Bookkeeping
     CLOCK: [2014-06-17 Tue 14:21]--[2014-06-17 Tue 14:31] =>  0:10
+*** [#C] Emit argument specializations
+    When type hint permits kick out a specialized invoke and dispatch
+    to it.
+
 ** Notes
 *** AST structure
     https://github.com/halgari/data-all-the-asts/blob/master/src/data_all_the_asts_talk/core.clj#L181
