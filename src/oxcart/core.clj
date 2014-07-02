@@ -98,47 +98,54 @@
      (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
                    (macroexpand form env))]
 
-       (if (and (seq? mform)
-                (= 'do (first mform)))
+       (cond (and (seq? mform)
+                  (= 'do (first mform)))
 
-         ;; DO form handling
-         ;;---------------------
-         (let [[statements ret]
-               (loop [statements  []
-                      [e & exprs] (rest mform)]
-                 (if-not (seq exprs)
-                   [statements e]
-                   (recur (conj statements e) exprs)))]
+             ;; DO form handling
+             ;;---------------------
+             (let [[statements ret]
+                   (loop [statements  []
+                          [e & exprs] (rest mform)]
+                     (if-not (seq exprs)
+                       [statements e]
+                       (recur (conj statements e) exprs)))]
+               
+               (doseq [expr statements]
+                 (eval expr options))
+               
+               (eval ret options))
 
-           (doseq [expr statements]
-             (eval expr options))
+             (nil? mform)
+             ;; Top level nil handling
+             ;;---------------------------
+             nil
 
-           (eval ret options))
 
-         ;; Bare expression handling
-         ;; ----------------------------
-         (do ;; Run the code for side-effects
-             (let [res (when (and eval?
-                                  (not (= 'clojure.core (.name *ns*))))
-                         (em.jvm/eval mform))]
-
-               (let [ast (-> mform
-                             (util/ast))]
-
-                 ;; Add to the accumulator for the whole read program
-                 ;;
-                 ;; Builds a mapping of the form
-                 (when (and forms
-                            (atom? forms))
-                   (swap! forms
-                          #(-> %1
-                               (update-in [(.name *ns*) :forms]
-                                          (comp vec concat) [ast])
-                               (update-in [:modules]
-                                          (fn [x]
-                                            (conj (or x #{})
-                                                  (.name *ns*))))))))
-               res))))))
+             true
+             ;; Bare expression handling
+             ;; ----------------------------
+             (do ;; Run the code for side-effects
+                 (let [res (when (and eval?
+                                      (not (= 'clojure.core (.name *ns*))))
+                             (em.jvm/eval mform))]
+                   
+                   (let [ast (-> mform
+                                 (util/ast))]
+                     
+                     ;; Add to the accumulator for the whole read program
+                     ;;
+                     ;; Builds a mapping of the form
+                     (when (and forms
+                                (atom? forms))
+                       (swap! forms
+                              #(-> %1
+                                   (update-in [(.name *ns*) :forms]
+                                              (comp vec concat) [ast])
+                                   (update-in [:modules]
+                                              (fn [x]
+                                                (conj (or x #{})
+                                                      (.name *ns*))))))))
+                   res))))))
 
 
 (defn load
