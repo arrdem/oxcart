@@ -23,7 +23,9 @@
             [clojure.string :as s]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as readers]
-            [oxcart.util :as util])
+            [oxcart.vars :refer :all]
+            [oxcart.util :as util]
+            [oxcart.core-redefs])
   (:import clojure.lang.IFn))
 
 
@@ -175,13 +177,24 @@
                  *load-configuration* options]
          (with-redefs [clojure.core/load   oxcart.core/load
                        clojure.core/eval   oxcart.core/eval
-                       clojure.core/gensym oxcart.core/gensym]
+                       clojure.core/gensym oxcart.core/gensym
+                       
+                       ;; FIXME:
+                       ;;   macro(s) taken as value via var(s)
+                       clojure.core/ns              @#'oxcart.core-redefs/ns
+                       clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
+                       clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
+                       clojure.core/deftype         @#'oxcart.core-redefs/deftype
+                       clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
+                       clojure.core/proxy           @#'oxcart.core-redefs/proxy
+                       clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
+                       clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol]
            (loop []
              (let [form (r/read reader false eof)]
                (when (not= eof form)
                  (eval form options)
                  (recur)))))))
-     nil))
+  nil))
 
 
 (defn compile
