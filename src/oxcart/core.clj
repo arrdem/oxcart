@@ -148,6 +148,20 @@
                    res))))))
 
 
+(defmacro with-macro-redefs
+  "Bindings is a sequence of pairs of symbols, where the left hand
+  side name macros and the right hand side names a new function which
+  the macro fn shall be replaced with."
+  [[l r & bindings] & forms]
+  (if (and l r)
+    `(let [rootv# (deref ~l)]
+       (try
+         (alter-var-root ~l (constantly ~r))
+         (with-macro-redefs [~@bindings] ~@forms)
+         (finally 
+           (alter-var-root ~l (constantly rootv#)))))
+    `(do ~@forms)))
+
 (defn load
   "(λ String) → nil
    (λ String → config-map) → nil
@@ -184,23 +198,20 @@
                  *load-configuration* options]
          (with-redefs [clojure.core/load   oxcart.core/load
                        clojure.core/eval   oxcart.core/eval
-                       clojure.core/gensym oxcart.core/gensym
-                       
-                       ;; FIXME:
-                       ;;   macro(s) taken as value via var(s)
-                       clojure.core/ns              @#'oxcart.core-redefs/ns
-                       clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
-                       clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
-                       clojure.core/deftype         @#'oxcart.core-redefs/deftype
-                       clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
-                       clojure.core/proxy           @#'oxcart.core-redefs/proxy
-                       clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
-                       clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol]
-           (loop []
-             (let [form (r/read reader false eof)]
-               (when (not= eof form)
-                 (eval form options)
-                 (recur)))))))
+                       clojure.core/gensym oxcart.core/gensym]
+           (with-macro-redefs [#'clojure.core/ns              @#'oxcart.core-redefs/ns
+                               #'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
+                               #'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
+                               #'clojure.core/deftype         @#'oxcart.core-redefs/deftype
+                               #'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
+                               #'clojure.core/proxy           @#'oxcart.core-redefs/proxy
+                               #'clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
+                               #'clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol]
+             (loop []
+               (let [form (r/read reader false eof)]
+                 (when (not= eof form)
+                   (eval form options)
+                   (recur))))))))
   nil))
 
 
