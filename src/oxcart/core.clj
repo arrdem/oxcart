@@ -108,7 +108,12 @@
                           [e & exprs] (rest mform)]
                      (if-not (seq exprs)
                        [statements e]
-                       (recur (conj statements e) exprs)))]
+                       (recur (conj statements e) exprs)))
+
+                   ;; If we are in the do of an (ns), discard all forms.
+                   options (if (#{'clojure.core/ns 'ns} (first form))
+                             (dissoc options :forms)
+                             options)]
                
                (doseq [expr statements]
                  (eval expr options))
@@ -124,7 +129,10 @@
              true
              ;; Bare expression handling
              ;; ----------------------------
-             (do ;; Run the code for side-effects
+             (do ;; Run the code for side-effects.
+
+                 (println (first form))
+
                  (let [res (when (and eval?
                                       (not (= 'clojure.core (.name *ns*))))
                              (em.jvm/eval mform))]
@@ -132,11 +140,22 @@
                    (let [ast (-> mform
                                  (util/ast))]
                      
-                     ;; Add to the accumulator for the whole read program
-                     ;;
-                     ;; Builds a mapping of the form
+                     ;; Add to the accumulator for the whole read
+                     ;; program. Note that the following forms are
+                     ;; discarded:
+                     ;; 
+                     ;; - clojure.core/require
+                     ;; - clojure.core/use
+                     ;; - clojure.core/refer
+                     ;; - clojure.core/import
                      (when (and forms
-                                (atom? forms))
+                                (atom? forms)
+                                (not (#{'clojure.core/require 'require
+                                        'clojure.core/use     'use
+                                        'clojure.core/refer   'refer
+                                        'clojure.core/import  'import
+                                        'clojure.core/import* 'import*}
+                                      (first form))))
                        (swap! forms
                               #(-> %1
                                    (update-in [(.name *ns*) :forms]
@@ -200,8 +219,7 @@
          (with-redefs [clojure.core/load   oxcart.core/load
                        clojure.core/eval   oxcart.core/eval
                        clojure.core/gensym oxcart.core/gensym]
-           (with-macro-redefs [#'clojure.core/ns              @#'oxcart.core-redefs/ns
-                               #'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
+           (with-macro-redefs [#'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
                                #'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
                                #'clojure.core/deftype         @#'oxcart.core-redefs/deftype
                                #'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
@@ -254,13 +272,18 @@
      {:pre [(seq? passes)
             (every? fn? passes)
             (fn? emitter)]}
-     (let [forms (atom [])
-           defs  (atom {})
+     (let [forms  (atom [])
+           defs   (atom {})
            config {:debug? false
                    :exec?  true
                    :forms forms}]
        ;; Loads and macroexpands all the code using the built config
        ;; to generate the forms and defs structures.
+       ;;
+       ;; By definition of a well formed Clojure program, loading the
+       ;; "root" resource must load all depended resources, otherwise
+       ;; there will be a symbol resolution error in the compiling
+       ;; Clojure runtime.
        (load res config)
 
        (let [settings (:passes settings)]
@@ -269,6 +292,8 @@
 
        ;; Having taken an O(Nᵏ) compile operation to the face we now
        ;; run the emitter and call it quits.
-       (let [settings (:emitter settings)]
+       (let [settings (:emitter settings)
+             settings (merge settings
+                             (select-keys settings [:entry]))]
          (emitter @forms settings)))
      nil))
