@@ -29,6 +29,12 @@
                             extend-protocol proxy]))
 
 
+;; FIXME:
+;;   This is currently dead code. Do I need a custom implementation of
+;;   ns? I don't think I do but I may... at present rather than using
+;;   a custom ns eval simply drops forms from ns. This may or may not
+;;   be a problem, so the below is retained.
+
 (defmacro oxcart.core-redefs/ns
   "Oxcart's alternative implementation of the ns macro. See
   clojure.core/ns for docs.
