@@ -130,9 +130,6 @@
              ;; Bare expression handling
              ;; ----------------------------
              (do ;; Run the code for side-effects.
-
-                 (println (first form))
-
                  (let [res (when (and eval?
                                       (not (= 'clojure.core (.name *ns*))))
                              (em.jvm/eval mform))]
