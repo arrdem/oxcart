@@ -7,7 +7,7 @@
 ;;   bound by the terms of this license.  You must not remove this
 ;;   notice, or any other, from this software.
 
-(ns oxcart.passes.emit-clj
+(ns oxcart.emitter.clj
   {:doc "Implements an ast to source return emitter designed to be run
          after other transformations for verification of output."
    :added "0.0.4"
@@ -16,8 +16,8 @@
             [oxcart.passes :as passes]))
 
 
-(defn emit-clojure
-  "λ Whole-AST → options → (Seq Form)
+(defn emit
+  "(λ Whole-AST → options) → (Seq Form)
 
   Uses tools.analyzer.jvm to emit Clojure code from a whole program
   AST. Inteded for use in debugging and verifying output, as well as

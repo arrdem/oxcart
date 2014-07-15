@@ -9,7 +9,7 @@
 
 (ns oxcart.passes.lambda-lift-test
   (:require [oxcart.passes.lambda-lift :as ll]
-            [oxcart.passes.emit-clj :as eclj]
+            [oxcart.emitter.clj :as eclj]
             [oxcart.core :as oxcart]
             [clojure.test :refer :all]))
 
@@ -29,7 +29,7 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (ll/lift-lambdas {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval)))))
 
   ;; Nested letfn case
@@ -45,7 +45,7 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (ll/lift-lambdas {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval)))))
 
   ;; Side by side letfn case
@@ -63,7 +63,7 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (ll/lift-lambdas {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval)))))
 
   ;; Local rebinding case
@@ -80,7 +80,7 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (ll/lift-lambdas {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval)))))
 
   ;; Closure of closures case
@@ -97,5 +97,5 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (ll/lift-lambdas {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval))))))
