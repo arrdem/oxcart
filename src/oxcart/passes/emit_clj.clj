@@ -29,5 +29,5 @@
   [{:keys [modules] :as whole-ast} options]
   (->> whole-ast
        passes/whole-ast->forms
-       (map emit/emit-form)
+       (map #(emit/emit-form %1 #{:qualified-vars}))
        (cons 'do)))

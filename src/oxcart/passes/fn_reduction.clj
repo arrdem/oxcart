@@ -115,18 +115,18 @@
     (let [[def-ast methods env]
           (if-let [fn-name (-> fn-ast :local :name)]
             ;; everything goes to shit and we need to do extra bindings work
-            (let [new-name (gensym "OX__L")
+            (let [new-name        (gensym "OX__L")
 
-                  def-ast  (ast `(def ~new-name
-                                      ~(pattern/def->symbol wrapping-def))
-                                env)
+                  def-ast         (ast `(def ~new-name
+                                          ~(pattern/def->symbol wrapping-def))
+                                       env)
 
-                  fn-ast (postwalk fn-ast
-                                   (fn [{:keys [op name] :as node}]
-                                     (if (and (= op :local)
-                                              (= name fn-name))
-                                       (ast new-name env)
-                                       node)))
+                  fn-ast          (postwalk fn-ast
+                                            (fn [{:keys [op name] :as node}]
+                                              (if (and (= op :local)
+                                                       (= name fn-name))
+                                                (ast new-name env)
+                                                node)))
 
                   [_fn & methods] (emit-form fn-ast)
                   [name methods]  (take-when symbol? methods)]
@@ -158,6 +158,15 @@
                              promotes)
                         (into {})))
 
+      (swap! munged-fns-atom
+             merge (->> (for [p promotes]
+                          (let [v (pattern/def->var p)]
+                            [v {(if (:variadic? (:init p))
+                                  :variadic
+                                  (count (first (:arglists p))))
+                                v}]))
+                        (into {})))
+
       (reset! prefix-forms-atom (vec (cons def-ast promotes)))
 
       (ast new-fn env))))
@@ -181,21 +190,22 @@
   bound with defs, as by the requirement of lambda lifting this must
   be the set of all fns in the input program."
   [ast munged-fns-atom]
-  (if-not (and (pattern/def? ast)
-               (not (contains? @munged-fns-atom
-                               (pattern/def->var ast))))
+  (if-not (pattern/def? ast)
     ast
-    (let [top-level-forms (atom [])
-          new-ast         (update ast :init
-                                  update-through-meta
-                                  rewrite-fn
-                                      ast
+    (if (or (contains? @munged-fns-atom
+                       (pattern/def->var ast))
+            (-> ast :meta :val :single))
+      ast
+      (let [top-level-forms (atom [])
+            new-ast         (update ast :init
+                                    update-through-meta
+                                    rewrite-fn
+                                    ast
                                       top-level-forms
                                       munged-fns-atom)]
-
-      (-> @top-level-forms
-          vec
-          (conj new-ast)))))
+        (-> @top-level-forms
+            vec
+            (conj new-ast))))))
 
 
 (defn rewrite-fn-invokes
