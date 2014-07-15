@@ -7,7 +7,7 @@
 ;;   bound by the terms of this license.  You must not remove this
 ;;   notice, or any other, from this software.
 
-(ns oxcart
+(ns oxcart.core
   {:doc "Implementation of the Oxcart compiler & API."
    :added "0.0.1"
    :author "Reid McKenzie"}
@@ -23,12 +23,18 @@
             [clojure.string :as s]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :as readers]
-            [oxcart.util :as util])
+            [oxcart.vars :refer :all]
+            [oxcart.util :as util]
+            [oxcart.core-redefs])
   (:import clojure.lang.IFn))
 
 
 (def root-directory
   @#'clojure.core/root-directory)
+
+
+(def clojure-gensym
+  @#'clojure.core/gensym)
 
 
 (def ^:dynamic *load-configuration*
@@ -50,24 +56,27 @@
 
 
 (defn gensym
-  "(gensym) → Symbol
-   (gensym prefix ← String) → Symbol
+  "(λ) → Symbol
+   (λ → Prefix) → Symbol
 
   Wrapper around clojure.core/gensym which adds metadata annotating
   generated symbols and permitting distinction between generated and
-  user specified symbols."
+  user specified symbols.
+
+  If Prefix is provided, it must be a string. Otherwise a prefix of
+  \"OG__\" is used by default."
   ([]
      (gensym "OG__"))
 
   ([x]
      (with-meta
-       (clojure.core/gensym x)
+       (clojure-gensym x)
        {:gensym true})))
 
 
 (defn eval
-  "λ form → value
-   λ form → config-map → value
+  "(λ form) → value
+   (λ form → config-map) → value
 
   Form is any Clojure sexpr, config map is a load configuration and
   value is an arbitrary Clojure value or class.
@@ -89,52 +98,90 @@
      (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
                    (macroexpand form env))]
 
-       (if (and (seq? mform)
-                (= 'do (first mform)))
+       (cond (and (seq? mform)
+                  (= 'do (first mform)))
 
-         ;; DO form handling
-         ;;---------------------
-         (let [[statements ret]
-               (loop [statements  []
-                      [e & exprs] (rest mform)]
-                 (if-not (seq exprs)
-                   [statements e]
-                   (recur (conj statements e) exprs)))]
+             ;; DO form handling
+             ;;---------------------
+             (let [[statements ret]
+                   (loop [statements  []
+                          [e & exprs] (rest mform)]
+                     (if-not (seq exprs)
+                       [statements e]
+                       (recur (conj statements e) exprs)))
 
-           (doseq [expr statements]
-             (eval expr options))
+                   ;; If we are in the do of an (ns), discard all forms.
+                   options (if (#{'clojure.core/ns 'ns} (first form))
+                             (dissoc options :forms)
+                             options)]
+               
+               (doseq [expr statements]
+                 (eval expr options))
+               
+               (eval ret options))
 
-           (eval ret options))
+             (nil? mform)
+             ;; Top level nil handling
+             ;;---------------------------
+             nil
 
-         ;; Bare expression handling
-         ;; ----------------------------
-         (do ;; Run the code for side-effects
-             (let [res (when (and eval?
-                                  (not (= 'clojure.core (.name *ns*))))
-                         (em.jvm/eval mform))]
 
-               (let [ast (-> mform
-                             (util/ast))]
+             true
+             ;; Bare expression handling
+             ;; ----------------------------
+             (do ;; Run the code for side-effects.
+                 (let [res (when (and eval?
+                                      (not (= 'clojure.core (.name *ns*))))
+                             (em.jvm/eval mform))]
+                   
+                   (let [ast (-> mform
+                                 (util/ast))]
+                     
+                     ;; Add to the accumulator for the whole read
+                     ;; program. Note that the following forms are
+                     ;; discarded:
+                     ;; 
+                     ;; - clojure.core/require
+                     ;; - clojure.core/use
+                     ;; - clojure.core/refer
+                     ;; - clojure.core/import
+                     (when (and forms
+                                (atom? forms)
+                                (not (#{'clojure.core/require 'require
+                                        'clojure.core/use     'use
+                                        'clojure.core/refer   'refer
+                                        'clojure.core/import  'import
+                                        'clojure.core/import* 'import*}
+                                      (first form))))
+                       (swap! forms
+                              #(-> %1
+                                   (update-in [(.name *ns*) :forms]
+                                              (comp vec concat) [ast])
+                                   (update-in [:modules]
+                                              (fn [x]
+                                                (conj (or x #{})
+                                                      (.name *ns*))))))))
+                   res))))))
 
-                 ;; Add to the accumulator for the whole read program
-                 ;;
-                 ;; Builds a mapping of the form
-                 (when (and forms
-                            (atom? forms))
-                   (swap! forms
-                          #(-> %1
-                               (update-in [(.name *ns*) :forms]
-                                          concat [ast])
-                               (update-in [:modules]
-                                          (fn [x]
-                                            (conj (or x #{})
-                                                  (.name *ns*))))))))
-               res))))))
+
+(defmacro with-macro-redefs
+  "Bindings is a sequence of pairs of symbols, where the left hand
+  side name macros and the right hand side names a new function which
+  the macro fn shall be replaced with."
+  [[l r & bindings] & forms]
+  (if (and l r)
+    `(let [rootv# (deref ~l)]
+       (try
+         (alter-var-root ~l (constantly ~r))
+         (with-macro-redefs [~@bindings] ~@forms)
+         (finally 
+           (alter-var-root ~l (constantly rootv#)))))
+    `(do ~@forms)))
 
 
 (defn load
-  "λ String → nil
-   λ String → config-map → nil
+  "(λ String) → nil
+   (λ String → config-map) → nil
 
   Loads a resource on the classpath identified by a string path as
   clojure code via eval for side-effects against the invoking Clojure
@@ -166,20 +213,27 @@
        (binding [*ns*                 *ns*
                  *file*               p
                  *load-configuration* options]
-         (with-redefs [clojure.core/load    oxcart/load
-                       clojure.core/eval    oxcart/eval
-                       clojure.core/gensym  oxcart/gensym]
-           (loop []
-             (let [form (r/read reader false eof)]
-               (when (not= eof form)
-                 (eval form options)
-                 (recur)))))))
-     nil))
+         (with-redefs [clojure.core/load   oxcart.core/load
+                       clojure.core/eval   oxcart.core/eval
+                       clojure.core/gensym oxcart.core/gensym]
+           (with-macro-redefs [#'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
+                               #'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
+                               #'clojure.core/deftype         @#'oxcart.core-redefs/deftype
+                               #'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
+                               #'clojure.core/proxy           @#'oxcart.core-redefs/proxy
+                               #'clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
+                               #'clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol]
+             (loop []
+               (let [form (r/read reader false eof)]
+                 (when (not= eof form)
+                   (eval form options)
+                   (recur))))))))
+  nil))
 
 
 (defn compile
-  "λ String → nil
-   λ String → config-map → nil
+  "(λ String) → nil
+   (λ String → config-map) → nil
 
   Loads a resource via load, applies any compilation transformations
   specified in the config-map, emitting and loading the resulting
@@ -215,13 +269,18 @@
      {:pre [(seq? passes)
             (every? fn? passes)
             (fn? emitter)]}
-     (let [forms (atom [])
-           defs  (atom {})
+     (let [forms  (atom [])
+           defs   (atom {})
            config {:debug? false
                    :exec?  true
                    :forms forms}]
        ;; Loads and macroexpands all the code using the built config
        ;; to generate the forms and defs structures.
+       ;;
+       ;; By definition of a well formed Clojure program, loading the
+       ;; "root" resource must load all depended resources, otherwise
+       ;; there will be a symbol resolution error in the compiling
+       ;; Clojure runtime.
        (load res config)
 
        (let [settings (:passes settings)]
@@ -230,6 +289,8 @@
 
        ;; Having taken an O(Nᵏ) compile operation to the face we now
        ;; run the emitter and call it quits.
-       (let [settings (:emitter settings)]
+       (let [settings (:emitter settings)
+             settings (merge settings
+                             (select-keys settings [:entry]))]
          (emitter @forms settings)))
      nil))

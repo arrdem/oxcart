@@ -1,30 +1,13 @@
 # Project Oxcart
 
-<center>
-  <img src="./resources/oxcart.jpg">
-  </img>
-</center>
+## Index
 
-> Then, I heard it. The click of the mic button from the back
-> seat. Very professionally, and with no emotion, Walter spoke: "Los
-> Angeles Center, Aspen 20, can you give us a ground speed check?"
-> There was no hesitation, and the replay came as if was an everyday
-> request. "Aspen 20, I show you at one thousand eight hundred and
-> forty-two knots, across the ground."
->
-> –– Brian Schul, "Sled Driver: Flying the World's Fastest Jet"
->
-> —– http://oppositelock.jalopnik.com/favorite-sr-71-story-1079127041
+ - [Introduction](/doc/index.md "Introduction")
+ - [Differences from Clojure](/doc/index.md "Differences from Clojure")
+ - [Behavior](/doc/index.md "Behavior")
+ - [Credits](/doc/index.md "Credits")
 
-Oxcart is a prototype Clojure compiler which seeks to provide
-aggressive AOT compilation for performance and memory usage. At present
-Oxcart is a holding tank for changes which will likely be split up
-between
-[tools.emitter.jvm](https://github.com/clojure/tools.emitter.jvm),
-[tools.analyzer.jvm](https://github.com/clojure/tools.analyzer.jvm)
-and some future `tools.optimizer.jvm`.
-
-## Documentation & Caveats
+## Introduction
 
 Oxcart does not seek to compile all valid clojure programs. The
 existing JVM Clojure reference implementation already does that
@@ -43,6 +26,9 @@ Unsupported forms include but are not limited to
  - `clojure.core/alter-var-root`
  - `set!`
 
+See the [Differences from Clojure](/doc/index.md "Differences from Clojure")
+section for a complete list of restrictions imposed by Oxcart.
+
 Oxcart seeks to perform a number of performance impacting
 transformations, including the following
 
@@ -50,6 +36,9 @@ transformations, including the following
  2. Elimination of vars as a dynamic dispatch mechanism
  3. Elimination of function level implementation classes in favor of namespace or whole program level implementation classes.
  4. Inlining of functions
+
+See the [Behavior](/doc/index.md "Behavior") section for a complete list
+of the tricks which Oxcart attempts to play.
 
 What do these program transformations mean? Quite simply that for some
 configurations Oxcart bytecode is not compatible with reference JVM
@@ -69,12 +58,9 @@ were normal Clojure bytecode will almost certainly fail. Some Oxcart
 configurations may provide full reference Clojure interop however this
 behavior is low priority at present.
 
- - [Documentation](doc/index.md)
- - [Changelog](CHANGES.org)
- - [TODO list](TODO.org)
 
-## License
+## Differences from Clojure
 
-Copyright © 2014 Reid McKenzie, Rich Hickey & contributors.
+## Behavior
 
-Distributed under the Eclipse Public License, the same as Clojure.
+## Credits

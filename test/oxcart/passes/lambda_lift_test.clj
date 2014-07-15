@@ -10,7 +10,7 @@
 (ns oxcart.passes.lambda-lift-test
   (:require [oxcart.passes.lambda-lift :as ll]
             [oxcart.passes.emit-clj :as eclj]
-            [oxcart]
+            [oxcart.core :as oxcart]
             [clojure.test :refer :all]))
 
 
