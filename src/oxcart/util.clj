@@ -122,3 +122,13 @@
   (symbol
    (-> v .ns ns-name str)
    (-> v .sym str)))
+
+(defn var->name [v]
+  {:pre  [(var? v)]
+   :post [(symbol? %)]}
+  (-> v .sym))
+
+(defn var->ns [v]
+  {:pre  [(var? v)]
+   :post [(symbol? %)]}
+  (-> v .ns ns-name))
