@@ -27,10 +27,12 @@
             [clojure.tools.emitter.jvm.transform
              :refer [-compile]]
             [clojure.tools.analyzer.jvm.utils
-             :refer [primitive? prim-or-obj] :as j.u]
+             :refer [primitive? prim-or-obj box] :as j.u]
             [clojure.tools.emitter.jvm.emit
              :refer [emit-line-number
-                     emit-constants]]))
+                     emit-constants]]
+            [clojure.tools.emitter.jvm.intrinsics
+             :refer [intrinsic intrinsic-predicate]]))
 
 (defn var->class [x]
   {:pre  [(var? x)]
@@ -54,14 +56,22 @@
   nil)
 
 (def supported-ops
-  #{:instance-call :static-call :do :const :static-field :fn-method :def :fn})
+  #{:instance-call                      ; ✓
+    :static-call                        ; ✓
+    :do                                 ; ✓
+    :const                              ; ✓
+    :static-field                       ; ✓
+    :fn-method                          ; ✓
+    :def                                ; ✓
+    :fn                                 ; ✓
+    })
 
 (defn dispatch-fn
-  [{:keys [op] :as node}]
+  [{:keys [op] :as node} _frame]
   (get supported-ops op :unsupported))
 
 (defmulti -emit
-  "(λ AST) → OpSeq
+  "(λ AST → Frame) → OpSeq
 
   Recursively translates the given AST to TEJVM bytecode, returning a
   sequence of opcodes.
@@ -71,6 +81,104 @@
 
 (defn label []
   (keyword (gensym "label__")))
+
+(defn emit-as-array [list frame]
+  `[[:push ~(int (count list))]
+    [:new-array :java.lang.Object]
+    ~@(mapcat (fn [i item]
+                `[[:dup]
+                  [:push ~(int i)]
+                  ~@(-emit item frame)
+                  [:array-store :java.lang.Object]])
+              (range) list)])
+
+(defn emit-intrinsic [{:keys [args method ^Class class false-label]}]
+  (let [m (str (.getMethod class (name method) (into-array Class (mapv :tag args))))]
+    (if false-label
+      (when-let [ops (intrinsic-predicate m)]
+        (with-meta (conj (mapv (fn [op] [:insn op]) (butlast ops))
+                         [:jump-insn (last ops) false-label])
+          {:intrinsic-predicate true}))
+      (when-let [ops (intrinsic m)]
+        (mapv (fn [op] [:insn op]) ops)))))
+
+;;--------------------------------------------------------------------
+
+(defmethod -emit :instance-call
+  [{:keys [env o-tag validated? args method ^Class class instance to-clear?]} frame]
+  (if validated?
+    `[~@(emit-line-number env)
+      ~@(-emit (assoc instance :tag class) frame)
+      ~@(mapcat #(-emit % frame) args)
+      ~@(when to-clear?
+           [[:insn :ACONST_NULL]
+            [:var-insn :clojure.lang.Object/ISTORE 0]])
+      [~(if (.isInterface class)
+          :invoke-interface
+          :invoke-virtual)
+       [~(keyword (.getName class) (str method)) ~@(mapv :tag args)] ~o-tag]]
+    `[~@(-emit instance frame)
+      [:push ~(str method)]
+      ~@(emit-as-array args frame)
+      ~@(when to-clear?
+          [[:insn :ACONST_NULL]
+           [:var-insn :clojure.lang.Object/ISTORE 0]])
+      [:invoke-static [:clojure.lang.Reflector/invokeInstanceMethod
+                       :java.lang.Object :java.lang.String :objects]
+       :java.lang.Object]]))
+
+(defmethod -emit :static-call
+  [{:keys [env o-tag validated? args method ^Class class false-label to-clear?] :as ast} frame]
+  (if validated?
+    (let [intrinsic (emit-intrinsic ast)]
+      `^{:intrinsic-predicate ~(-> intrinsic meta :intrinsic-predicate)}
+      [~@(emit-line-number env)
+       ~@(mapcat #(-emit % frame) args)
+       ~@(or intrinsic
+             `[~@(when to-clear?
+                   [[:insn :ACONST_NULL]
+                    [:var-insn :clojure.lang.Object/ISTORE 0]])
+               [:invoke-static [~(keyword (.getName class) (str method))
+                                ~@(mapv :tag args)] ~o-tag]])])
+    `[[:push ~(.getName class)]
+      [:invoke-static [:java.lang.Class/forName :java.lang.String] :java.lang.Class]
+      [:push ~(str method)]
+      ~@(emit-as-array args frame)
+      ~@(when to-clear?
+          [[:insn :ACONST_NULL]
+           [:var-insn :clojure.lang.Object/ISTORE 0]])
+      [:invoke-static [:clojure.lang.Reflector/invokeStaticMethod
+                       :java.lang.Class :java.lang.String :objects]
+       :java.lang.Object]]))
+
+(defmethod -emit :do
+  [{:keys [statements ret]} frame]
+  (with-meta
+    (vec (mapcat #(-emit % frame) (conj statements ret)))
+    {:container true}))
+
+(defmethod -emit :const
+  [{:keys [val id tag] :as ast} frame]
+  ^:const
+  [(case val
+     (true false)
+     (if (primitive? tag)
+       [:push val]
+       [:get-static (if val :java.lang.Boolean/TRUE :java.lang.Boolean/FALSE)
+        :java.lang.Boolean])
+
+     nil
+     [:insn :ACONST_NULL]
+
+     (if (or (primitive? tag)
+             (string? val))
+       [:push (cast (or (box tag) (class val)) val)]
+       [:get-static (:class frame) (str "const__" id) tag]))])
+
+(defmethod -emit :static-field
+  [{:keys [field o-tag class env]} _frame]
+  `^:const
+  [~[:get-static class field o-tag]])
 
 (defmethod -emit :fn-method
   [{:keys [params tag fixed-arity variadic? body env]}
@@ -103,9 +211,10 @@
                   params)
           [:mark ~loop-label]
           ~@(emit-line-number env loop-label)
-          ~@(emit body (assoc frame
-                         :loop-label  loop-label
-                         :loop-locals params))
+          ~@(-emit body
+                   (assoc frame
+                     :loop-label  loop-label
+                     :loop-locals params))
           [:mark ~end-label]
           [:return-value]
           [:end-method]]]
@@ -134,14 +243,16 @@
                       [:end-method]]})]))
 
 (defmethod -emit :def
-  [{:keys [init var]}]
-  (-> (-emit init)
-      (assoc :class-name (var->class var))))
+  [{:keys [init var]} frame]
+  (->> (var->class var)
+       (assoc frame :class-name)
+       (-emit init)))
 
 (defn emit-fn-class
   [{:keys [class-name methods variadic? constants closed-overs env
            annotations super interfaces op fields class-id]
-    :as ast}]
+    :as ast}
+   _frame]
   (let [constants          (->> constants
                                 (remove #(let [{:keys [tag type]} (val %)]
                                            (or (primitive? tag)
@@ -200,7 +311,8 @@
                           (mapcat #(-emit %) methods))}))
 
 (defmethod -emit :fn
-  [{:keys [form internal-name variadic?] :as ast}]
+  [{:keys [form internal-name variadic?] :as ast}
+   _frame]
   (let [class-name (str (namespace-munge *ns*) "$" (munge internal-name))
         super      (if variadic? :clojure.lang.RestFn :clojure.lang.AFunction)
         ast        (assoc ast
@@ -213,7 +325,7 @@
 
   Transforms a def to a class, returning a TEJVM AST describing the
   resulting class."
-  [ast]
+  [ast _frame]
   {:pre [(pattern/def? ast)]}
   )
 
@@ -251,7 +363,11 @@
 
     ;; compile & write the bootstrap class
     (let [class-name (var->ns entry)
-          class-ast  {}
+          class-ast  {} ;; FIXME
+                        ;;   This is something that I'm gonna need to
+                        ;;   build by hand methinks.
           class-bc   (-> class-ast -compile)]
+      (assert (not (= class-ast {}))
+              "FIXME: not implemented yet!")
       (write-class class-name class-bc)))
   nil)
