@@ -27,14 +27,15 @@
             [clojure.tools.emitter.jvm.transform
              :refer [-compile]]
             [clojure.tools.analyzer.jvm.utils
-             :refer [primitive? prim-or-obj box] :as j.u]
+             :refer [primitive? prim-or-obj box numeric?] :as j.u]
             [clojure.tools.emitter.jvm.emit
              :refer [emit-line-number
                      emit-constants]]
             [clojure.tools.emitter.jvm.intrinsics
              :refer [intrinsic intrinsic-predicate]]))
 
-(defn var->class [x]
+(defn var->class
+  [x]
   {:pre  [(var? x)]
    :post [(string? %)]}
   (str (var->ns x) "." (var->name x)))
@@ -79,10 +80,12 @@
   OpSeq is (Seq (Σ Op Opseq))"
   dispatch-fn)
 
-(defn label []
+(defn label
+  []
   (keyword (gensym "label__")))
 
-(defn emit-as-array [list frame]
+(defn emit-as-array
+  [list frame]
   `[[:push ~(int (count list))]
     [:new-array :java.lang.Object]
     ~@(mapcat (fn [i item]
@@ -92,7 +95,8 @@
                   [:array-store :java.lang.Object]])
               (range) list)])
 
-(defn emit-intrinsic [{:keys [args method ^Class class false-label]}]
+(defn emit-intrinsic
+  [{:keys [args method ^Class class false-label]}]
   (let [m (str (.getMethod class (name method) (into-array Class (mapv :tag args))))]
     (if false-label
       (when-let [ops (intrinsic-predicate m)]
@@ -101,6 +105,37 @@
           {:intrinsic-predicate true}))
       (when-let [ops (intrinsic m)]
         (mapv (fn [op] [:insn op]) ops)))))
+
+(defn emit-box [tag box unchecked?]
+  (if (and (primitive? tag)
+           (not (primitive? box)))
+    (cond
+     (numeric? tag)
+     [[:invoke-static [:clojure.lang.RT/box tag] :java.lang.Number]
+      [:check-cast box]]
+     (= Character/TYPE tag)
+     [[:invoke-static [:clojure.lang.RT/box :char] :java.lang.Character]]
+     (= Boolean/TYPE tag)
+     [[:invoke-static [:clojure.lang.RT/box :boolean] :java.lang.Object]
+      [:check-cast :java.lang.Boolean]])
+    (when (primitive? box)
+      (let [method (if (and (numeric? box) (or unchecked? *unchecked-math*))
+                     (str "unchecked" (s/capitalize (.getName ^Class box)) "Cast")
+                     (str (.getName ^Class box) "Cast"))
+            tag (prim-or-obj tag)
+            method-sig (str (.getMethod clojure.lang.RT method (into-array Class [tag])))]
+        (if-let [ops (intrinsic method-sig)]
+          (mapv (fn [op] [:insn op]) ops)
+          [[:invoke-static [(keyword "clojure.lang.RT" method) tag] box]])))))
+
+(defn emit-cast
+  ([tag cast] (emit-cast tag cast false))
+  ([tag cast unchecked?]
+     (if (not (or (primitive? tag)
+                (primitive? cast)))
+       (when-not (#{Void Void/TYPE} cast)
+         [[:check-cast cast]])
+       (emit-box tag cast unchecked?))))
 
 ;;--------------------------------------------------------------------
 
@@ -172,7 +207,9 @@
 
      (if (or (primitive? tag)
              (string? val))
-       [:push (cast (or (box tag) (class val)) val)]
+       [:push (cast (or (box tag)
+                        (class val))
+                    val)]
        [:get-static (:class frame) (str "const__" id) tag]))])
 
 (defmethod -emit :static-field
@@ -221,26 +258,38 @@
 
     ;; should emit typed only when there's an interface, otherwise it's useless
 
-    `[{:op     :method
-       :attr   #{:public}
-       :method [(into [method-name] arg-tags) return-type]
-       :code   code}
-      (when primitive?
-        {:op        :method
-         :attr      #{:public}
-         :interface prim-interface
-         :method    [(into [:invoke] (repeat (count params) :java.lang.Object))
-                     :java.lang.Object]
-         :code      `[[:start-method]
-                      [:load-this]
-                      ~@(mapcat (fn [{:keys [tag]} id]
-                                  `[~[:load-arg id]
-                                    ~@(emit-cast Object tag)])
-                                params (range))
-                      ~[:invoke-virtual (into [(keyword class "invokePrim")] arg-tags) return-type]
-                      ~@(emit-cast return-type Object)
-                      [:return-value]
-                      [:end-method]]})]))
+    [{:op     :method
+      :attr   #{:public}
+      :method [(into [method-name] arg-tags) return-type]
+      :code   code}
+     (when primitive?
+       {:op        :method
+        :attr      #{:public}
+        :interface prim-interface
+        :method    [(into [:invoke] (repeat (count params) :java.lang.Object))
+                    :java.lang.Object]
+        :code      `[[:start-method]
+                     [:load-this]
+                     ~@(mapcat (fn [{:keys [tag]} id]
+                                 `[~[:load-arg id]
+                                   ~@(emit-cast Object tag)])
+                               params (range))
+                     ~[:invoke-virtual (into [(keyword class "invokePrim")] arg-tags) return-type]
+                     ~@(emit-cast return-type Object)
+                     [:return-value]
+                     [:end-method]]})]))
+
+(defmethod -emit :fn
+  [{:keys [form internal-name variadic?] :as ast}
+   {:keys [class-name] :as frame}]
+  (let [class-name (or class-name
+                       (str (namespace-munge *ns*) "$" (munge internal-name)))
+        super      (if variadic? :clojure.lang.RestFn :clojure.lang.AFunction)
+        ast        (assoc ast
+                     :class-name class-name
+                     :super super)]
+    (emit-fn-class ast frame)))
+
 
 (defmethod -emit :def
   [{:keys [init var]} frame]
@@ -308,29 +357,15 @@
      :fields      consts
      :methods     (concat class-ctors
                           variadic-method
-                          (mapcat #(-emit %) methods))}))
+                          (mapcat #(-emit % _frame) methods))}))
 
-(defmethod -emit :fn
-  [{:keys [form internal-name variadic?] :as ast}
-   _frame]
-  (let [class-name (str (namespace-munge *ns*) "$" (munge internal-name))
-        super      (if variadic? :clojure.lang.RestFn :clojure.lang.AFunction)
-        ast        (assoc ast
-                     :class-name class-name
-                     :super super)]
-    (emit-fn-class ast)))
-
-(defn emit-class
-  "(λ Def-AST) → Class-AST
-
-  Transforms a def to a class, returning a TEJVM AST describing the
-  resulting class."
-  [ast _frame]
-  {:pre [(pattern/def? ast)]}
-  )
+(defmethod -emit :unsupported
+  [{:keys [op] :as node} frame]
+  (assert false
+          (str "Failed to emit op" op)))
 
 (defn emit
-  "(λ Whole-AST → Options) → nil
+  "(λ Whole-AST → Options) → Nil
 
   Emits a whole program with reference to a single emtry point as
   named by the argument var, writing class files for side-effects.
@@ -357,17 +392,42 @@
 
     ;; compile & write the set of used classes
     (doseq [ast reach-defs]
-      (let [{:keys [class-name] :as class-ast} (emit-class ast emit)
+      (assert (pattern/def? ast) "Attempted to def-emit non-def!")
+      (let [{:keys [class-name] :as class-ast} (-emit ast {})
             class-bc                           (-compile class-ast)]
         (write-class class-name class-bc)))
 
     ;; compile & write the bootstrap class
     (let [class-name (var->ns entry)
-          class-ast  {} ;; FIXME
-                        ;;   This is something that I'm gonna need to
-                        ;;   build by hand methinks.
+          class-ast  {:op          :class
+                      :attr        #{:public :super :final}
+                      :class-name  class-name
+                      :name        (s/replace class-name \. \/)
+                      :methods     [{:op     :method
+                                     :attr   #{:public :static}
+                                     :method [[:<clinit>] :void]
+                                     :code   [[:start-method]
+                                              [:return-value]
+                                              [:end-method]]}
+                                    {:op     :method
+                                     :attr   #{:public}
+                                     :method [[:<init>] :void]
+                                     :code   [[:start-method]
+                                              [:load-this]
+                                              [:invoke-constructor [:java.lang.Object/<init>] :void]
+                                              [:return-value]
+                                              [:end-method]]}
+                                    {:op     :method
+                                     :attr   #{:public :static}
+                                     :method `[[:main "java.lang.String[]"] :void]
+                                     :code   `[[:start-method]
+                                               [:invoke-static [:clojure.lang.RT/seq :java.lang.Object] :clojure.lang.Seq] ;; seq the array
+                                               [:new-instance ~(var->class entry)]
+                                               [:invoke-constructor [~(keyword (var->class entry) "<init>")] :void]
+                                               [:invoke-interface [:clojure.lang.IFn/applyTo :clojure/lang/ISeq] :java.lang.Object]
+                                               [:pop]
+                                               [:return-value] ;; stack must be empty I guess...
+                                               [:end-method]]}]}
           class-bc   (-> class-ast -compile)]
-      (assert (not (= class-ast {}))
-              "FIXME: not implemented yet!")
       (write-class class-name class-bc)))
   nil)
