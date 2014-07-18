@@ -137,7 +137,74 @@
          [[:check-cast cast]])
        (emit-box tag cast unchecked?))))
 
+(defn emit-fn-class
+  [{:keys [class-name methods variadic? constants closed-overs env
+           annotations super interfaces op fields class-id]
+    :as ast}
+   _frame]
+  (let [constants          (->> constants
+                                (remove #(let [{:keys [tag type]} (val %)]
+                                           (or (primitive? tag)
+                                               (#{:string :bool} type))))
+                                (into {}))
+
+        consts             (vals constants)
+
+        constant-table     (zipmap (mapv :id consts) consts)
+
+        consts             (mapv (fn [{:keys [id tag]}]
+                                   {:op   :field
+                                    :attr #{:public :final :static}
+                                    :name (str "const__" id)
+                                    :tag  tag})
+                                 consts)
+
+        ctor-types         (into (if meta [:clojure.lang.IPersistentMap] [])
+                                 (mapv :tag closed-overs))
+
+        class-ctors        [{:op     :method
+                             :attr   #{:public :static}
+                             :method [[:<clinit>] :void]
+                             :code   `[[:start-method]
+                                       [:return-value]
+                                       [:end-method]]}
+                            {:op     :method
+                             :attr   #{:public}
+                             :method `[[:<init> ~@ctor-types] :void]
+                             :code   `[[:start-method]
+                                       [:load-this]
+                                       [:invoke-constructor [~(keyword (name super) "<init>")] :void]
+                                       [:return-value]
+                                       [:end-method]]}]
+
+        variadic-method    (when variadic?
+                             (let [required-arity (->> methods (filter :variadic?) first :fixed-arity)]
+                               [{:op     :method
+                                 :attr   #{:public}
+                                 :method [[:getRequiredArity] :int]
+                                 :code   [[:start-method]
+                                          [:push (int required-arity)]
+                                          [:return-value]
+                                          [:end-method]]}]))]
+
+    {:op          :class
+     :attr        #{:public :super :final}
+     :annotations annotations
+     :class-name  class-name
+     :name        (s/replace class-name \. \/)
+     :super       (s/replace (name super) \. \/)
+     :interfaces  interfaces
+     :fields      consts
+     :methods     (concat class-ctors
+                          variadic-method
+                          (mapcat #(-emit % _frame) methods))}))
+
 ;;--------------------------------------------------------------------
+
+(defmethod -emit :invoke
+  [{:keys []} frame]
+  nil
+  )
 
 (defmethod -emit :instance-call
   [{:keys [env o-tag validated? args method ^Class class instance to-clear?]} frame]
@@ -290,74 +357,12 @@
                      :super super)]
     (emit-fn-class ast frame)))
 
-
 (defmethod -emit :def
   [{:keys [init var]} frame]
   (->> (var->class var)
+       munge
        (assoc frame :class-name)
        (-emit init)))
-
-(defn emit-fn-class
-  [{:keys [class-name methods variadic? constants closed-overs env
-           annotations super interfaces op fields class-id]
-    :as ast}
-   _frame]
-  (let [constants          (->> constants
-                                (remove #(let [{:keys [tag type]} (val %)]
-                                           (or (primitive? tag)
-                                               (#{:string :bool} type))))
-                                (into {}))
-
-        consts             (vals constants)
-
-        constant-table     (zipmap (mapv :id consts) consts)
-
-        consts             (mapv (fn [{:keys [id tag]}]
-                                   {:op   :field
-                                    :attr #{:public :final :static}
-                                    :name (str "const__" id)
-                                    :tag  tag})
-                                 consts)
-
-        ctor-types         (into (if meta [:clojure.lang.IPersistentMap] [])
-                                 (mapv :tag closed-overs))
-
-        class-ctors        [{:op     :method
-                             :attr   #{:public :static}
-                             :method [[:<clinit>] :void]
-                             :code   `[[:start-method]
-                                       [:return-value]
-                                       [:end-method]]}
-                            {:op     :method
-                             :attr   #{:public}
-                             :method `[[:<init> ~@ctor-types] :void]
-                             :code   `[[:start-method]
-                                       [:load-this]
-                                       [:invoke-constructor [~(keyword (name super) "<init>")] :void]
-                                       [:return-value]
-                                       [:end-method]]}]
-
-        variadic-method    (when variadic?
-                             (let [required-arity (->> methods (filter :variadic?) first :fixed-arity)]
-                               [{:op     :method
-                                 :attr   #{:public}
-                                 :method [[:getRequiredArity] :int]
-                                 :code   [[:start-method]
-                                          [:push (int required-arity)]
-                                          [:return-value]
-                                          [:end-method]]}]))]
-
-    {:op          :class
-     :attr        #{:public :super :final}
-     :annotations annotations
-     :class-name  class-name
-     :name        (s/replace class-name \. \/)
-     :super       (s/replace (name super) \. \/)
-     :interfaces  interfaces
-     :fields      consts
-     :methods     (concat class-ctors
-                          variadic-method
-                          (mapcat #(-emit % _frame) methods))}))
 
 (defmethod -emit :unsupported
   [{:keys [op] :as node} frame]
@@ -376,7 +381,7 @@
     a Var, being the var with reference to which the entire program
     will be emitted."
   [whole-program {:keys [entry] :as options}]
-  {:pre  [(var? entry)]
+  {:pre  [(symbol? entry)]
    :post [(nil? %)]}
   (let [whole-program (-> whole-program
                           (require-pass tree-shake          options)
@@ -384,14 +389,15 @@
                           (require-pass tree-shake          options)
                           (require-pass analyze-var-uses    options)
                           (require-pass locate-var-as-value options))
-        reach         (-> whole-program (get :var-reached) (get entry))
+        reach         (-> whole-program (get :var-reached) (get (resolve entry)))
         reach-defs    (->> whole-program
                            whole-ast->forms
-                           (keep #(and (pattern/def? %)
-                                       (reach (pattern/def->var %)))))]
+                           (filter #(and (pattern/def? %)
+                                         (reach (pattern/def->var %)))))]
 
     ;; compile & write the set of used classes
     (doseq [ast reach-defs]
+      (println ast)
       (assert (pattern/def? ast) "Attempted to def-emit non-def!")
       (let [{:keys [class-name] :as class-ast} (-emit ast {})
             class-bc                           (-compile class-ast)]
