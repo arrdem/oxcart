@@ -129,7 +129,7 @@
   {:pre [(every? symbol? modules)
          (symbol? entry)
          (every? (partial contains? ast) modules)]}
-  (let [ast      (require-pass analyze-var-dependencies options)
+  (let [ast      (require-pass ast analyze-var-dependencies options)
         emit-set (get (:reach-map ast) (resolve entry))]
     (-> ast
         (trim-with-emit-set emit-set)
