@@ -541,7 +541,7 @@
 
 (defmethod -emit :invoke
   [{:keys [fn args env to-clear?]} frame]
-  (if-not (= :var (:op fn))
+  (if (#{:var :the-var} (:op fn))
     ;; static var invoke case
     (let [frame (dissoc frame :to-clear?)]
       `[~@(mapcat #(emit % frame) (take 19 args))
@@ -550,7 +550,7 @@
         ~@(when to-clear?
             [[:insn :ACONST_NULL]
              [:var-insn :clojure.lang.Object/ISTORE 0]])
-        [:invoke-static [`(keyword (var->class (:var fn)) "invoke") ~@(repeat (min 20 (count args)) :java.lang.Object)] :java.lang.Object]])
+        [:invoke-static [~(keyword (var->class (:var fn)) "invoke") ~@(repeat (min 20 (count args)) :java.lang.Object)] :java.lang.Object]])
     
     ;; general invoke case
     `[~@(emit fn frame)
