@@ -207,8 +207,7 @@
 
 (defmethod -emit :var
   [{:keys [var env] :as ast} frame]
-  (if (and (= :ctx.invoke/target (:context env))
-           (:static (meta var)))
+  (if (= :ctx.invoke/target (:context env))
     [[:new-instance (var->class var)]
      [:dup]
      [:invoke-constructor [(keyword (var->class var) "<init>")] :void]]
