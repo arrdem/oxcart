@@ -81,7 +81,7 @@
        {:op          :class
         :attr        #{:public :super :final}
         :class-name  class-name
-        :super       :java.lang.Object
+        :super       "java/lang/Object"
         :name        (s/replace class-name \. \/)
         :methods     [{:op     :method
                        :attr   #{:public :static}
