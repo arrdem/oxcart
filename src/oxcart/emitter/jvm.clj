@@ -100,15 +100,15 @@
                       {:op     :method
                        :attr   #{:public :static}
                        :method `[[:main "java.lang.String[]"] :void]
-                       :code   `[[:start-method] ; stack 1
-                                 [:aload 1]
-                                 [:invoke-static [:clojure.lang.RT/seq :java.lang.Object] :clojure.lang.Seq] ; seq the array ; stack 1
-                                 [:new-instance ~(e/var->class (resolve entry))] ; stack 2
-                                 [:dup] ; stack 3
-                                 [:invoke-constructor [~(keyword (e/var->class (resolve entry)) "<init>")] :void] ; stack 2
-                                 [:invoke-interface [:clojure.lang.IFn/applyTo :clojure/lang/ISeq] :java.lang.Object] ; stack 1
-                                 [:pop] ; stack 0
-                                 [:return-value] ; return garbage
+                       :code   `[[:start-method]
+                                 [:new-instance ~(e/var->class (resolve entry))]
+                                 [:dup]
+                                 [:invoke-constructor [~(keyword (e/var->class (resolve entry)) "<init>")] :void]
+                                 [:aload 0]
+                                 [:invoke-static [:clojure.lang.RT/seq :java.lang.Object] :clojure.lang.ISeq]
+                                 [:invoke-interface [:clojure.lang.IFn/applyTo :clojure.lang.ISeq] :java.lang.Object]
+                                 [:pop]
+                                 [:return-value]
                                  [:end-method]]}]}))))
 
 (defn emit-program

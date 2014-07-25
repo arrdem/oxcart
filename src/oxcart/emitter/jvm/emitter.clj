@@ -206,13 +206,19 @@
   [[:get-static (:class frame) (str "const__" id) clojure.lang.Var]])
 
 (defmethod -emit :var
-  [{:keys [var] :as ast} frame]
-  (conj
-   (emit-var ast frame)
-   [:invoke-virtual [(if (u/dynamic? var)
-                       :clojure.lang.Var/get
-                       :clojure.lang.Var/getRawRoot)] :java.lang.Object]))
+  [{:keys [var env] :as ast} frame]
+  (if (and (= :ctx.invoke/target (:context env))
+           (:static (meta var)))
+    [[:new-instance (var->class var)]
+     [:dup]
+     [:invoke-constructor [(keyword (var->class var) "<init>")] :void]]
 
+    (conj
+     (emit-var ast frame)
+     [:invoke-virtual [(if (u/dynamic? var)
+                         :clojure.lang.Var/get
+                         :clojure.lang.Var/getRawRoot)] :java.lang.Object])))
+  
 (defmethod -emit-set! :var
   [{:keys [target val] :as ast} frame]
   `[~@(emit-var target frame)
@@ -541,21 +547,10 @@
 
 (defmethod -emit :invoke
   [{:keys [fn args env to-clear?]} frame]
-  (if (#{:var :the-var} (:op fn))
-    ;; static var invoke case
-    (let [frame (dissoc frame :to-clear?)]
-      `[~@(mapcat #(emit % frame) (take 19 args))
-        ~@(when-let [args (seq (drop 19 args))]
-            (emit-as-array args frame))
-        ~@(when to-clear?
-            [[:insn :ACONST_NULL]
-             [:var-insn :clojure.lang.Object/ISTORE 0]])
-        [:invoke-static [~(keyword (var->class (:var fn)) "invoke") ~@(repeat (min 20 (count args)) :java.lang.Object)] :java.lang.Object]])
-    
-    ;; general invoke case
-    `[~@(emit fn frame)
-      [:check-cast :clojure.lang.IFn]
-      ~@(emit-args-and-invoke args (assoc frame :to-clear? to-clear?))]))
+  ;; general invoke case
+  `[~@(emit fn frame)
+    [:check-cast :clojure.lang.IFn]
+    ~@(emit-args-and-invoke args (assoc frame :to-clear? to-clear?))])
 
 (defmethod -emit :protocol-invoke
   [{:keys [fn args env to-clear?]} frame]
@@ -813,11 +808,9 @@
 
         primitive?             (some primitive? tags)
 
-        method-name            (cond
-                                variadic? :doInvoke
-                                primitive? :invokePrim
-                                :else
-                                :invoke)
+        method-name            (cond variadic?  :doInvoke
+                                     primitive? :invokePrim
+                                     :else      :invoke)
 
         ;; arg-types
         [loop-label end-label] (repeatedly label)
