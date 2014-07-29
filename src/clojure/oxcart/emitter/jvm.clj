@@ -19,6 +19,7 @@
             [oxcart.pattern :as pattern]
             [oxcart.emitter.jvm.emitter :as e]
             [oxcart.util                         :refer [var->sym var->ns var->name]]
+            [oxcart.emitter.util                 :refer :all]
             [oxcart.passes :as passes            :refer [do-passes whole-ast->forms]]
             [oxcart.passes.tree-shake            :refer [analyze-var-uses tree-shake analyze-var-dependencies]]
             [oxcart.passes.fn-reduction          :refer [reduce-fn-arities]]
@@ -39,16 +40,6 @@
       (.write w bytecode)
       (println "Wrote class" name)))
   nil)
-
-(defn instr? [x]
-  (if (or (vector? x) (seq? x))
-    (let [[target & more] x]
-      (keyword? target))
-    false))
-
-(defn flatten [x]
-  (if (instr? x) [x]
-      (mapcat flatten x)))
 
 (defn preprocess-whole-ast
   [whole-program options]
