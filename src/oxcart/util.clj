@@ -117,7 +117,7 @@
          (assert false error))))
 
 
-(defn var-name
+(defn var->sym
   [v]
   (symbol
    (-> v .ns ns-name str)

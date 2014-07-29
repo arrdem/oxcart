@@ -227,7 +227,7 @@
                     (if-let [var (get munged-fns
                                       (count args)
                                       (get munged-fns :variadic))]
-                      (assoc node :fn (ast (var-name var) env))
+                      (assoc node :fn (ast (var->sym var) env))
                       node)
                     node)
                   node)))))
