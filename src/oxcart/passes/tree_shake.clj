@@ -21,7 +21,7 @@
 
 
 (defn reach-set
-  "λ AST → #{Var}
+  "(λ AST) → #{Var}
 
   Computes the var reach set of an AST"
   [source]
@@ -32,7 +32,7 @@
 
 
 (defn -step-reach-set
-  "λ {T → #{T}} → {T → #{T}}
+  "(λ {T → #{T}}) → {T → #{T}}
 
   Implements a single update step of the context insensitive closure
   of closures dataflow operation."
@@ -45,7 +45,7 @@
 
 
 (defn global-reach-set
-  "λ {T → #{T}} → {T → #{T}}
+  "(λ {T → #{T}}) → {T → #{T}}
 
   Computes the reach set for an entire program"
   [symbol-dep-tree]
@@ -53,7 +53,7 @@
 
 
 (defn trim-with-emit-set
-  "λ Whole-AST → #{Var} → Whole-AST
+  "(λ Whole-AST → #{Var}) → Whole-AST
 
   Rewrites a Whole-AST to eliminate definitions of vars which are not
   used. Note that this operation _preserves_ non def top level forms
@@ -69,7 +69,7 @@
 
 
 (defn analyze-var-dependencies
-  "λ Whole-AST → options → Whole-AST
+  "(λ Whole-AST → options) → Whole-AST
 
   Implements an analysis pass which creates the following annotations
   in the supplied whole program AST.
@@ -99,7 +99,7 @@
 
 
 (defn tree-shake
-  "λ Whole-AST → options → Whole-AST
+  "(λ Whole-AST → options) → Whole-AST
 
   Implements def elimination on the basis of prior reachability
   analysis. Uses the reachability analysis as proof that a given def
@@ -116,31 +116,32 @@
          (symbol? entry)
          (every? (partial contains? ast) modules)]}
   (let [ast      (require-pass ast analyze-var-dependencies options)
-        emit-set (get (:reach-map ast) (resolve entry))]
+        emit-set (get (:reach-map ast)
+                      (resolve entry))]
     (-> ast
         (trim-with-emit-set emit-set)
         (clobber-passes))))
 
 
 (defn deps-to-uses
-  "λ {Var → #{Var}} → {Var → #{Var}}
+  "(λ {Var → #{Var}}) → {Var → #{Var}}
 
   Takes a mapping from vars to dependencies and computes the reverse
   mapping, being vars to uses."
   [deps-map]
-  (let [acc  (atom {})
+  (let [acc   (atom {})
         sconj #(conj (or %1 #{}) %2)]
     ;; FIXME
     ;;   There's probably a way to write this comprehension which is
     ;;   more efficient, but this works for now.
     (doseq [[var deps] deps-map
-            dep  deps]
+            dep        deps]
       (swap! acc update-in [dep] sconj var))
     @acc))
 
 
 (defn analyze-var-uses
-  "λ Whole-AST → Options → Whole-AST
+  "(λ Whole-AST → Options) → Whole-AST
 
   Walks the argument AST, accumulating call site information about
   vars. Returns an updated Whole-AST which has the `:var-used' and
@@ -152,10 +153,8 @@
   -----------
     This pass takes no options"
   [whole-ast options]
-  (let [{:keys [dependency-map
-                reach-map]
-         :as whole-ast} (-> whole-ast
-                            (require-pass analyze-var-dependencies {}))]
+  (let [{:keys [dependency-map reach-map] :as whole-ast}
+        (-> whole-ast (require-pass analyze-var-dependencies {}))]
     (-> whole-ast
         (assoc :var-used    (deps-to-uses dependency-map)
                :var-reached (deps-to-uses reach-map))
