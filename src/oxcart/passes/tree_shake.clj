@@ -13,7 +13,7 @@
    :added "0.0.5"}
   (:require [oxcart.util :as util]
             [oxcart.pattern :as pattern]
-            [oxcart.passes :refer [require-pass record-pass clobber-passes]]
+            [oxcart.passes :refer [update-forms require-pass record-pass clobber-passes]]
             [oxcart.passes.defs :as defs]
             [clojure.set :as set]
             [clojure.tools.analyzer.ast :as ast]
@@ -58,28 +58,14 @@
   Rewrites a Whole-AST to eliminate definitions of vars which are not
   used. Note that this operation _preserves_ non def top level forms
   rather than discarding them."
-  [{:keys [modules] :as whole-program-ast} reach-set]
-  {:pre [(every? (partial contains? whole-program-ast) modules)
-         (every? #(get-in whole-program-ast [%1 :forms]) modules)
-         (every? var? reach-set)]}
-  (let [new-ast (atom {:modules modules})]
-
-    (doseq [m modules]
-      (assert (:forms (get whole-program-ast m)))
-
-      (doseq [ast (:forms (get whole-program-ast m))]
-        (if (pattern/def? ast)
-          (if (contains? reach-set (:var ast))
-            (swap! new-ast update-in [m :forms] conj ast)
-
-            (info "Discarding unused def form,"
-                  (util/format-line-info ast)))
-
-          (swap! new-ast update-in [m :forms] conj ast)))
-
-      (swap! new-ast update-in [m :forms] vec))
-
-    @new-ast))
+  [whole-ast reach-set]
+  (update-forms whole-ast
+                (fn [ast]
+                  (if (and (pattern/def? ast)
+                           (contains? reach-set (:var ast)))
+                    ast
+                    (do (info "Discarding unused def form," (util/format-line-info ast))
+                        nil)))))
 
 
 (defn analyze-var-dependencies
