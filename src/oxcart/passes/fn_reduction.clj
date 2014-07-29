@@ -113,7 +113,7 @@
    munged-fns-atom]
   (if (not (or (pattern/fn? fn-ast)
                (fn-is-multiple-arity? fn-ast)))
-    ast
+    fn-ast
     (let [[def-ast methods env]
           (if-let [fn-name (-> fn-ast :local :name)]
             ;; everything goes to shit and we need to do extra bindings work
