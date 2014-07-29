@@ -71,14 +71,16 @@
   Builds and yields a new AST representing a fn with a munged name
   having the provided method body for its only arity."
   [wrapping-def raw-method env]
-  (let [new-name (munge-symbol
-                  (pattern/def->symbol wrapping-def)
-                  (count (first raw-method))
-                  (some (partial = '&)
-                        (first raw-method)))]
-    (ast `(def ^:single ^:static ~new-name
-            (fn* ~raw-method))
-         env)))
+  (let [new-name (with-meta
+                   (munge-symbol
+                    (pattern/def->symbol wrapping-def)
+                    (count (first raw-method))
+                    (some (partial = '&)
+                          (first raw-method)))
+                   {:single true :static true})
+        new-def `(def ~new-name (fn* ~raw-method))]
+    (eval-in new-def env)
+    (ast new-def env)))
 
 
 (defn write-body
