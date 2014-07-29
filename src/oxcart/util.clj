@@ -132,3 +132,17 @@
   {:pre  [(var? v)]
    :post [(symbol? %)]}
   (-> v .ns ns-name))
+
+
+(defn eval-in
+  "(λ Sexpr → Env) → Any
+
+  Helper for evaluating a given sexpr in another namespace as specified by a
+  TANAL env record/map. Returns the result of evaluating the sexpr in the other
+  environment."
+  [form {other-ns :ns :as env}]
+  (let [this (.name *ns*)]
+    (in-ns other-ns)
+    (let [res (clojure.core/eval form)]
+      (in-ns this)
+      res)))
