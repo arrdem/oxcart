@@ -52,7 +52,7 @@
 
 
 (defn fn-is-multiple-arity?
-  "λ AST → Boolean
+  "(λ AST) → Boolean
 
   Returns true if and only of the argument AST is both a function node
   and a function of more than one arity."
@@ -62,7 +62,7 @@
 
 
 (defn promote-method
-  "λ AST → List → Env → AST
+  "(λ AST → List → Env) → AST
 
   raw-method   is a raw list form
   env          is the containing environment
@@ -175,7 +175,7 @@
 
 
 (defn rewrite-fn-decls
-  "λ AST → (atom {Var → (λ int → Var)}) → (U AST (Vec AST))
+  "(λ AST → (atom {Var → {(U Number :variadic) → Var}})) → (U AST (Vec AST))
 
   Rewrites top level forms into one or more top level forms. If a top
   level form is the def of a fn with multiple arities, the def is
@@ -211,7 +211,7 @@
 
 
 (defn rewrite-fn-invokes
-  "λ AST → (Atom {Var → {(U Number :variadic) → Var}}) → AST
+  "(λ AST → (Atom {Var → {(U Number :variadic) → Var}})) → AST
 
   Walks the argument AST, rewriting invoke nodes where it is possible
   to call a previously emitted single arity function rather than a
@@ -236,7 +236,7 @@
 
 
 (defn reduce-fn-arities
-  "λ Whole-AST → Options → Whole-AST
+  "(λ Whole-AST → Options) → Whole-AST
 
   This pass walks the argument AST, examining function definitions and
   rewriting multiple arity functions into single arity functions when

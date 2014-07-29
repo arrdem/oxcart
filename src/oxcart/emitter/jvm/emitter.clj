@@ -207,10 +207,9 @@
 
 (defmethod -emit :var
   [{:keys [var env] :as ast} frame]
-  (if (= :ctx.invoke/target (:context env))
-    [[:new-instance (var->class var)]
-     [:dup]
-     [:invoke-constructor [(keyword (var->class var) "<init>")] :void]]
+  (if (and (-> var meta :static)
+           (= :ctx.invoke/target (:context env)))
+    [] ;; no work do to
 
     (conj
      (emit-var ast frame)
@@ -611,6 +610,8 @@
      [:insn :ISHR]
      [:push (int mask)]
      [:insn :IAND]]))
+
+
 
 (defn emit-test-ints
   [{:keys [test test-type] :as ast} frame default-label]

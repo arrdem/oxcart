@@ -106,8 +106,9 @@
   is used or not used and drops the ASTs constituting unused defs from
   the program.
 
-  options:
-    :entry is a symbol, presumably a namespace qualified -main, which
+  Options
+  -----------
+    `:entry' is a symbol, presumably a namespace qualified -main, which
     is the entry point of the prorgam. It is with respect to this
     function that all other defs in all loaded namespaces will be
     considered for elimination."

@@ -50,6 +50,12 @@
   (if (instr? x) [x]
       (mapcat flatten x)))
 
+(defn preprocess-whole-ast
+  [whole-program options]
+  (do-passes whole-program options
+             tree-shake reduce-fn-arities
+             tree-shake analyze-var-uses))
+
 (defn emit-classes
   "(λ Whole-AST → Options) → (Seq Class-AST)
 
@@ -65,11 +71,7 @@
   [whole-program
    {:keys [entry] :as options}]
   {:pre  [(symbol? entry)]}
-  (let [whole-program (-> whole-program
-                          (require-pass tree-shake          options)
-                          (require-pass reduce-fn-arities   options)
-                          (require-pass tree-shake          options)
-                          (require-pass analyze-var-uses    options))
+  (let [whole-program (preprocess-whole-ast whole-program options)
         reach         (-> whole-program (get :reach-map) (get (resolve entry)))
         reach-defs    (->> whole-program
                            whole-ast->forms
