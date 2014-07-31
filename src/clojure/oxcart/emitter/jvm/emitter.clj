@@ -815,9 +815,9 @@
 
         primitive?             (some primitive? tags)
 
-        method-name            (cond static?    :invokeStatic
+        method-name            (cond primitive? :invokePrim
                                      variadic?  :doInvoke
-                                     primitive? :invokePrim
+                                     static?    :invokeStatic
                                      :else      :invoke)
 
         attr                   (if static?
@@ -828,45 +828,47 @@
         [loop-label end-label] (repeatedly label)]
 
     ;; should emit typed only when there's an interface, otherwise it's useless
-    `[~{:op     :method
-        :attr   attr
-        :method [(into [method-name] arg-tags) return-type]
-        :code   (flatten
-                 [[:start-method]
-                  [:local-variable :this :clojure.lang.AFunction nil loop-label end-label :this]
-                  (mapcat (fn [{:keys [name arg-id o-tag tag]}]
-                            `[~[:local-variable name tag nil loop-label end-label name]
-                              ~@(when-not (= tag o-tag)
-                                  [[:load-arg arg-id]
-                                   [:check-cast tag]
-                                   [:store-arg arg-id]])])
-                          params)
-                  [:mark loop-label]
-                  (emit-line-number env loop-label)
-                  (emit body (assoc frame
-                               :loop-label  loop-label
-                               :loop-locals params))
-                  [:mark end-label]
-                  [:return-value]
-                  [:end-method]])}
+    [{:op     :method
+      :attr   attr
+      :method [(into [method-name] arg-tags) return-type]
+      :code   (flatten
+               [[:start-method]
+                (when-not static?
+                  [:local-variable :this :clojure.lang.AFunction nil loop-label end-label :this])
+                (mapcat (fn [{:keys [name arg-id o-tag tag]}]
+                          `[~[:local-variable name tag nil loop-label end-label name]
+                            ~@(when-not (= tag o-tag)
+                                [[:load-arg arg-id]
+                                 [:check-cast tag]
+                                 [:store-arg arg-id]])])
+                        params)
+                [:mark loop-label]
+                (emit-line-number env loop-label)
+                (emit body (assoc frame
+                             :loop-label  loop-label
+                             :loop-locals params))
+                [:mark end-label]
+                [:return-value]
+                [:end-method]])}
 
-      ~@(when primitive?
-          [{:op        :method
-            :attr      attr
-            :interface prim-interface
-            :method    [(into [:invoke] (repeat (count params) :java.lang.Object))
-                        :java.lang.Object]
-            :code      (flatten
-                        `[[:start-method]
-                          [:load-this]
-                          (mapcat (fn [{:keys [tag]} id]
-                                    `[~[:load-arg id]
-                                      ~@(emit-cast Object tag)])
-                                  params (range))
-                          [:invoke-virtual (into [(keyword class "invokePrim")] arg-tags) return-type]
-                          (emit-cast return-type Object)
-                          [:return-value]
-                          [:end-method]])}])]))
+     (when primitive?
+       {:op        :method
+        :attr      attr
+        :interface prim-interface
+        :method    [(into [:invoke] (repeat (count params) :java.lang.Object))
+                    :java.lang.Object]
+        :code      (flatten
+                    [[:start-method]
+                     (when-not static?
+                       [:load-this])
+                     (mapcat (fn [{:keys [tag]} id]
+                               `[~[:load-arg id]
+                                 ~@(emit-cast Object tag)])
+                             params (range))
+                     [:invoke-virtual (into [(keyword class "invokePrim")] arg-tags) return-type]
+                     (emit-cast return-type Object)
+                     [:return-value]
+                     [:end-method]])})]))
 
 ;; addAnnotations
 (defmethod -emit :method
@@ -1382,10 +1384,11 @@
      :interfaces  interfaces
      :fields      (concat consts keyword-callsites
                           meta-field closed-overs protocol-callsites)
-     :methods     (concat class-ctors defrecord-ctor deftype-methods
-                          variadic-method meta-methods
-                          (mapcat #(-emit % frame) methods))}))
-
+     :methods     (keep identity
+                        (concat class-ctors defrecord-ctor deftype-methods
+                                variadic-method meta-methods
+                                (mapcat #(-emit % frame) methods)))}))
+  
 ;; (defmethod -emit :reify
 ;;   [{:keys [class-name] :as ast}
 ;;    frame]
@@ -1419,11 +1422,11 @@
   [{:keys [var variadic? env] :as ast}
    {:keys [static?] :as frame}]
   (let [class-name (var->class var)
-        super      (cond static?
-                         ,,:ox.lang.ASFn
-
-                          variadic? 
+        super      (cond variadic? 
                          ,,:clojure.lang.RestFn
+
+                         static?
+                         ,,:ox.lang.ASFn
 
                          :else
                          ,,:clojure.lang.AFunction)

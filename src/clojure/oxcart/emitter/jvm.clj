@@ -104,7 +104,7 @@
                                  [:return-value]
                                  [:end-method]]}]}))))
 
-(defn emit-program
+(defn emit
   "(λ Whole-AST → Options) → Nil
 
   Emits a whole program with reference to a single emtry point as
