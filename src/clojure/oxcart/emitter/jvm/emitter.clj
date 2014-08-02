@@ -59,7 +59,7 @@
   ([tag cast] (emit-cast tag cast false))
   ([tag cast unchecked?]
      (if (not (or (primitive? tag)
-                (primitive? cast)))
+                  (primitive? cast)))
        (when-not (#{Void Void/TYPE} cast)
          [[:check-cast cast]])
        (emit-box tag cast unchecked?))))
@@ -83,7 +83,7 @@
   Options
   -----------
   :debug? :- (Option bool)
-    Controls development debug level printing throughout code generation."
+  Controls development debug level printing throughout code generation."
 
   ([ast]
      (emit ast {}))
@@ -119,7 +119,7 @@
   Options
   -----------
   :debug :- (Option bool)
-    Controls developlent debug level printing throughout code generation."
+  Controls developlent debug level printing throughout code generation."
 
   ([ast]
      (emit-classes ast {}))
@@ -217,7 +217,7 @@
      [:invoke-virtual [(if (u/dynamic? var)
                          :clojure.lang.Var/get
                          :clojure.lang.Var/getRawRoot)] :java.lang.Object])))
-  
+
 (defmethod -emit-set! :var
   [{:keys [target val] :as ast} frame]
   `[~@(emit-var target frame)
@@ -473,8 +473,8 @@
       ~@(emit (assoc instance :tag class) frame)
       ~@(mapcat #(emit % frame) args)
       ~@(when to-clear?
-           [[:insn :ACONST_NULL]
-            [:var-insn :clojure.lang.Object/ISTORE 0]])
+          [[:insn :ACONST_NULL]
+           [:var-insn :clojure.lang.Object/ISTORE 0]])
       [~(if (.isInterface class)
           :invoke-interface
           :invoke-virtual)
@@ -546,7 +546,7 @@
 (defmethod -emit :invoke
   [{:keys [fn args env to-clear?]} frame]
   (let [v       (-> fn :var)
-        static? (-> v meta :static)]
+        static? (-> v meta :oxcart.passes.fn-reduction/static)]
     ;; general invoke case
     [(emit fn frame)
      (when-not static? [:check-cast :clojure.lang.IFn])
@@ -820,7 +820,7 @@
                                      static?    :invokeStatic
                                      :else      :invoke)
 
-        attr                   (if static?
+        attr                   (if (and static? (not primitive?))
                                  #{:public :static}
                                  #{:public})
 
@@ -950,10 +950,10 @@
   [{:keys [target val env]} {:keys [class] :as frame}]
   (let [{:keys [o-tag name]} target]
     `[~@(emit-line-number env)
-     [:load-this]
-     ~@(emit (assoc val :tag Object) frame)
-     ~[:put-field class name Object]
-     ~@(-emit target frame)]))
+      [:load-this]
+      ~@(emit (assoc val :tag Object) frame)
+      ~[:put-field class name Object]
+      ~@(-emit target frame)]))
 
 (defmulti -emit-value (fn [type value] type))
 
@@ -1075,8 +1075,8 @@
   (let [sorted? (sorted? s)]
     (if (empty? s)
       [(if sorted?
-          [:get-static :clojure.lang.PersistentTreeSet/EMPTY :clojure.lang.PersistentTreeSet]
-          [:get-static :clojure.lang.PersistentHashSet/EMPTY :clojure.lang.PersistentHashSet])]
+         [:get-static :clojure.lang.PersistentTreeSet/EMPTY :clojure.lang.PersistentTreeSet]
+         [:get-static :clojure.lang.PersistentHashSet/EMPTY :clojure.lang.PersistentHashSet])]
       `[~@(emit-values-as-array s)
         ~@(if sorted?
             [[:invoke-static [:clojure.lang.RT/seq :java.lang.Object] :clojure.lang.ISeq]
@@ -1086,10 +1086,10 @@
 (defmethod -emit-value :seq [_ s]
   (if (empty? s)
     [[:get-static :clojure.lang.PersistentList/EMPTY :clojure.lang.PersistentList$EmptyList]]
-   `[~@(emit-values-as-array s)
-     [:invoke-static [:java.util.Arrays/asList :objects] :java.util.List]
-     [:invoke-static [:clojure.lang.PersistentList/create :java.util.List]
-      :clojure.lang.IPersistentList]]))
+    `[~@(emit-values-as-array s)
+      [:invoke-static [:java.util.Arrays/asList :objects] :java.util.List]
+      [:invoke-static [:clojure.lang.PersistentList/create :java.util.List]
+       :clojure.lang.IPersistentList]]))
 
 (defmethod -emit-value :char [_ c]
   [[:push c]
@@ -1416,13 +1416,15 @@
   (emit (-> init
             (assoc :var var))
         (-> frame
-            (assoc :static? (-> var clojure.core/meta :static)))))
+            (assoc :static? (-> var 
+                                clojure.core/meta
+                                :oxcart.passes.fn-reduction/static)))))
 
 (defmethod -emit :fn
   [{:keys [var variadic? env] :as ast}
    {:keys [static?] :as frame}]
   (let [class-name (var->class var)
-        super      (cond variadic? 
+        super      (cond variadic?
                          ,,:clojure.lang.RestFn
 
                          static?
