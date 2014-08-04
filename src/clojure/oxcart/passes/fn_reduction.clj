@@ -92,7 +92,9 @@
   (let [[params & forms] raw-method
         new-params       (for [p params
                                :when (not (= p '&))]
-                           (gensym "OX__P"))
+                           (with-meta
+                             (gensym "OX__P")
+                             (meta p)))
 
         variadic?          (some (partial = '&) params)
 
@@ -198,7 +200,8 @@
     ast
     (if (or (contains? @munged-fns-atom
                        (pattern/def->var ast))
-            (-> ast :meta :val :ox/single))
+            (-> ast :meta :val :ox/single)
+            (= (count (:methods ast)) 1))
       ast
       (let [top-level-forms (atom [])
             new-ast         (update ast :init

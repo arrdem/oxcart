@@ -1,10 +1,10 @@
 (ns call
   (:gen-class))
 
-(defn vcall ^long [^long i]
+(defn ^:static vcall ^long [^long i]
   (inc i))
 
-(defn bench [^long reps]
+(defn ^:static bench [^long reps]
   (loop [i 0
          accum 0]
     (when (< i reps)

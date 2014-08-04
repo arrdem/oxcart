@@ -204,25 +204,27 @@
 
 (defn emit-var
   [{:keys [id]} frame]
+  {:pre [id]}
+  (println id)
   ^:const
   [[:get-static (:class frame) (str "const__" id) clojure.lang.Var]])
 
 (defmethod -emit :var
-  [{:keys [var env] :as ast} {class :class :as frame}]
+  [{:keys [var env id] :as ast} {class :class :as frame}]
   (cond (and (-> var meta :ox/static)
              (= :ctx.invoke/target (:context env)))
         ,,[] ;; no work do to
         
 
-        (-> var meta :static)
-        [[:get-static (:class frame) (str "const__" (:id var)) clojure.lang.IFn]]
+        (fn? @var)
+        ,,[[:get-static (:class frame) (str "const__" id) clojure.lang.IFn]]
 
         :else
         ,,(conj
            (emit-var ast frame)
            [:invoke-virtual [(if (u/dynamic? var)
                                :clojure.lang.Var/get
-                             :clojure.lang.Var/getRawRoot)] :java.lang.Object])))
+                               :clojure.lang.Var/getRawRoot)] :java.lang.Object])))
 
 (defmethod -emit-set! :var
   [{:keys [target val] :as ast} frame]
@@ -535,6 +537,19 @@
      [:mark ~false-label]
      ~@(emit else frame)
      [:mark ~end-label]]))
+
+
+(defn emit-args-and-invoke
+  ([args frame] (emit-args-and-invoke args frame false))
+  ([args {:keys [to-clear?] :as frame} proto?]
+     (let [frame (dissoc frame :to-clear?)]
+       `[~@(mapcat #(emit % frame) (take 19 args))
+         ~@(when-let [args (seq (drop 19 args))]
+             (emit-as-array args frame))
+         ~@(when to-clear?
+             [[:insn :ACONST_NULL]
+              [:var-insn :clojure.lang.Object/ISTORE 0]])
+         [:invoke-interface [:clojure.lang.IFn/invoke ~@(repeat (min 20 (count args)) :java.lang.Object) ~@(when proto? [:java.lang.Object])] :java.lang.Object]])))
 
 (defmethod -emit :invoke
   [{:keys [fn args env to-clear?]}
@@ -878,8 +893,7 @@
                     :java.lang.Object]
         :code      (flatten
                     [[:start-method]
-                     (when-not static?
-                       [:load-this])
+                     [:load-this]
                      (mapcat (fn [{:keys [tag]} id]
                                `[~[:load-arg id]
                                  ~@(emit-cast Object tag)])
@@ -1202,7 +1216,6 @@
   (map-vals constants
    (fn [{:keys [val tag] :as v}]
      (if-not (and (= tag clojure.lang.Var)
-                  (-> val meta :static)
                   (fn? @val))
        v
        (assoc v
@@ -1304,10 +1317,12 @@
                                            (emit-keyword-callsites frame))
                                        ~@(when (= super :ox.lang.ASFn)
                                            [[:push class-name]
+                                            [:check-cast :java.lang.String]
                                             [:put-static class-name :name :java.lang.String]
                                             [:new-instance class-name]
                                             [:dup]
                                             [:invoke-constructor [(keyword class-name "<init>")] :void]
+                                            [:check-cast :ox.lang.ASFn]
                                             [:put-static class-name :self :ox.lang.ASFn]])
                                        [:return-value]
                                        [:end-method]]}
@@ -1489,7 +1504,6 @@
   (let [class-name (var->class var)
 
         static?    (and (or static? false)
-                        (not (fn-primitive? ast))
                         (not variadic?))
 
         super      (cond variadic?
