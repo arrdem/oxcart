@@ -77,7 +77,7 @@
                     (count (first raw-method))
                     (some (partial = '&)
                           (first raw-method)))
-                   {:single true :static true})
+                   {:ox/single true :ox/static true})
         new-def `(def ~new-name (fn* ~raw-method))]
     (eval-in new-def env)
     (ast new-def env)))
