@@ -13,12 +13,13 @@
 
 (ns oxcart.emitter.jvm.emitter
   (:refer-clojure :exclude [cast flatten])
-  (:require [oxcart.util :refer [var->name var->ns]]
+  (:require [oxcart.util :refer [var->name var->ns map-vals]]
             [oxcart.emitter.util :refer [flatten]]
             [clojure.tools.analyzer.utils :as u]
             [clojure.tools.analyzer.jvm.utils :refer [primitive? numeric? box prim-or-obj] :as j.u]
             [clojure.string :as s]
-            [clojure.tools.emitter.jvm.intrinsics :refer [intrinsic intrinsic-predicate]])
+            [clojure.tools.emitter.jvm.intrinsics :refer [intrinsic intrinsic-predicate]]
+            [taoensso.timbre :as timbre :refer [debug info warn]])
   (:import clojure.lang.Reflector))
 
 (defmulti -emit (fn [{:keys [op]} _] op))
@@ -207,16 +208,21 @@
   [[:get-static (:class frame) (str "const__" id) clojure.lang.Var]])
 
 (defmethod -emit :var
-  [{:keys [var env] :as ast} frame]
-  (if (and (-> var meta :static)
-           (= :ctx.invoke/target (:context env)))
-    [] ;; no work do to
+  [{:keys [var env] :as ast} {class :class :as frame}]
+  (cond (and (-> var meta :ox/static)
+             (= :ctx.invoke/target (:context env)))
+        ,,[] ;; no work do to
+        
 
-    (conj
-     (emit-var ast frame)
-     [:invoke-virtual [(if (u/dynamic? var)
-                         :clojure.lang.Var/get
-                         :clojure.lang.Var/getRawRoot)] :java.lang.Object])))
+        (-> var meta :static)
+        [[:get-static (:class frame) (str "const__" (:id var)) clojure.lang.IFn]]
+
+        :else
+        ,,(conj
+           (emit-var ast frame)
+           [:invoke-virtual [(if (u/dynamic? var)
+                               :clojure.lang.Var/get
+                             :clojure.lang.Var/getRawRoot)] :java.lang.Object])))
 
 (defmethod -emit-set! :var
   [{:keys [target val] :as ast} frame]
@@ -530,28 +536,28 @@
      ~@(emit else frame)
      [:mark ~end-label]]))
 
-(defn emit-args-and-invoke
-  ([args frame]
-     (emit-args-and-invoke args frame false))
-
-  ([args {:keys [to-clear?] :as frame} proto?]
-     (let [frame (dissoc frame :to-clear?)]
-       `[~@(mapcat #(emit % frame) (take 19 args))
-         ~@(when-let [args (seq (drop 19 args))]
-             (emit-as-array args frame))
-         ~@(when to-clear?
-             [[:insn :ACONST_NULL]
-              [:var-insn :clojure.lang.Object/ISTORE 0]])])))
-
 (defmethod -emit :invoke
-  [{:keys [fn args env to-clear?]} frame]
-  (let [v       (-> fn :var)
-        static? (-> v meta :oxcart.passes.fn-reduction/static)]
-    ;; general invoke case
-    [(emit fn frame)
-     (when-not static? [:check-cast :clojure.lang.IFn])
-     (emit-args-and-invoke args (assoc frame :to-clear? to-clear?))
-     (if static?
+  [{:keys [fn args env to-clear?]}
+   {class :class :as frame}]
+  (let [v          (-> fn :var)
+        ox-static? (-> v meta :ox/static)]
+
+    (debug "Invoking " v " ox-static? "ox-static?)
+
+    [(when-not ox-static?
+       [(emit fn frame)
+        [:check-cast :clojure.lang.IFn]])
+
+     (mapcat #(emit % frame) (take 19 args))
+
+     (when-let [args (seq (drop 19 args))]
+       (emit-as-array args frame))
+
+     (when to-clear?
+       [[:insn :ACONST_NULL]
+        [:var-insn :clojure.lang.Object/ISTORE 0]])
+
+     (if ox-static?
        ;; invokeStatic case
        [:invoke-static `[~(keyword (var->class v) "invokeStatic") ~@(repeat (min 20 (count args)) :java.lang.Object)] :java.lang.Object]
        ;; instance invoke case
@@ -805,9 +811,20 @@
                   exprs loop-locals))
     [:go-to ~loop-label]])
 
+(defn fn-method-primitive?
+  [{:keys [params tag] :as fn-method}]
+  (let [arg-tags               (mapv (comp prim-or-obj :tag) params)
+        return-type            (prim-or-obj tag)
+        tags                   (conj arg-tags return-type)]
+    (some primitive? tags)))
+
+(defn fn-primitive?
+  [{methods :methods :as fn}]
+  (some fn-method-primitive? methods))
+
 (defmethod -emit :fn-method
   [{:keys [params tag fixed-arity variadic? body env]}
-   {:keys [class static?] :as frame}]
+   {:keys [class static? class] :as frame}]
   (let [arg-tags               (mapv (comp prim-or-obj :tag) params)
         return-type            (prim-or-obj tag)
         tags                   (conj arg-tags return-type)
@@ -827,6 +844,8 @@
         ;; arg-types
         [loop-label end-label] (repeatedly label)]
 
+    (debug class " static? " static? " primitive? " primitive?)
+
     ;; should emit typed only when there's an interface, otherwise it's useless
     [{:op     :method
       :attr   attr
@@ -836,11 +855,11 @@
                 (when-not static?
                   [:local-variable :this :clojure.lang.AFunction nil loop-label end-label :this])
                 (mapcat (fn [{:keys [name arg-id o-tag tag]}]
-                          `[~[:local-variable name tag nil loop-label end-label name]
-                            ~@(when-not (= tag o-tag)
-                                [[:load-arg arg-id]
-                                 [:check-cast tag]
-                                 [:store-arg arg-id]])])
+                          [[:local-variable name tag nil loop-label end-label name]
+                           (when-not (= tag o-tag)
+                             [[:load-arg arg-id]
+                              [:check-cast tag]
+                              [:store-arg arg-id]])])
                         params)
                 [:mark loop-label]
                 (emit-line-number env loop-label)
@@ -1024,11 +1043,18 @@
    [:invoke-static [:clojure.lang.Keyword/intern :java.lang.String :java.lang.String]
     :clojure.lang.Keyword]])
 
-(defmethod -emit-value :var [_ ^clojure.lang.Var v]
+(defmethod -emit-value :var [_ v]
   [[:push (str (ns-name (.ns v)))]
    [:push (name (.sym v))]
    [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String]
     :clojure.lang.Var]])
+
+(defmethod -emit-value :static-var [_ v]
+  [[:push (str (ns-name (.ns v)))]
+   [:push (name (.sym v))]
+   [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String] :clojure.lang.Var]
+   [:invoke-virtual [:clojure.lang.Var/getRawRoot] :java.lang.Object]
+   [:check-cast :clojure.lang.IFn]])
 
 (defn emit-values-as-array [list]
   `[[:push ~(int (count list))]
@@ -1159,22 +1185,44 @@
           keyword-callsites))
 
 
-;; TODO: generalize this for deftype/reify: needs  mutable field handling + altCtor + annotations
+;; TODO: generalize this for deftype/reify: needs mutable field
+;; handling + altCtor + annotations
 ;; add smap
+
+;; TODO: add a way to prevent creating locals for vars which will be
+;; statically used rather than creating them and never using them
+
+;; TODO: the handling of generating various classes is pretty
+;; complected. Each class case as mentioned above should really have
+;; its own explicit emitter rather than getting all munged into this
+;; one.
+
+(defn rewrite-constant-vars
+  [constants]
+  (map-vals constants
+   (fn [{:keys [val tag] :as v}]
+     (if-not (and (= tag clojure.lang.Var)
+                  (-> val meta :static)
+                  (fn? @val))
+       v
+       (assoc v
+         :type :static-var
+         :tag  clojure.lang.IFn)))))
 
 (defn emit-class
   [{:keys [class-name meta methods variadic? static? constants
            closed-overs keyword-callsites protocol-callsites env
-           annotations super interfaces op fields class-id]
+           annotations super interfaces op fields class-id var]
     :as ast}
    {:keys [debug? class-loader] :as frame}]
   (let [old-frame          frame
 
-        constants          (into {}
-                                 (remove #(let [{:keys [tag type]} (val %)]
+        constants          (->> constants
+                                (remove #(let [{:keys [tag type]} (val %)]
                                             (or (primitive? tag)
-                                                (#{:string :bool} type)))
-                                         constants))
+                                                (#{:string :bool} type))))
+                                 (into {})
+                                 rewrite-constant-vars)
 
         consts             (vals constants)
         constant-table     (zipmap (mapv :id consts) consts)
@@ -1221,6 +1269,12 @@
                                          :tag  java.lang.Class}]))
                                    protocol-callsites)
 
+        name-field         (when (= super :ox.lang.ASFn)
+                             [{:op   :field
+                               :attr #{:public :static}
+                               :name :name
+                               :tag  :java.lang.String}])
+
         deftype?           (= op :deftype)
         defrecord?         (contains? closed-overs '__meta)
 
@@ -1248,6 +1302,13 @@
                                            (emit-constants frame))
                                        ~@(when (seq keyword-callsites)
                                            (emit-keyword-callsites frame))
+                                       ~@(when (= super :ox.lang.ASFn)
+                                           [[:push class-name]
+                                            [:put-static class-name :name :java.lang.String]
+                                            [:new-instance class-name]
+                                            [:dup]
+                                            [:invoke-constructor [(keyword class-name "<init>")] :void]
+                                            [:put-static class-name :self :ox.lang.ASFn]])
                                        [:return-value]
                                        [:end-method]]}
                             (let [[start-label end-label] (repeatedly label)]
@@ -1268,7 +1329,7 @@
                                               `[[:load-this]
                                                 ~[:load-arg id]
                                                 ~@(emit-cast t tag)
-                                                ~[:put-field class-name name tag]])
+                                                ~[:put-static class-name name tag]])
                                             closed-overs ctor-types (if meta (rest (range)) (range)))
 
                                          [:label ~end-label]
@@ -1382,8 +1443,12 @@
      :name        (s/replace class-name \. \/)
      :super       (s/replace (name super) \. \/)
      :interfaces  interfaces
-     :fields      (concat consts keyword-callsites
-                          meta-field closed-overs protocol-callsites)
+     :fields      (concat name-field
+                          consts
+                          keyword-callsites
+                          meta-field
+                          closed-overs
+                          protocol-callsites)
      :methods     (keep identity
                         (concat class-ctors defrecord-ctor deftype-methods
                                 variadic-method meta-methods
@@ -1399,7 +1464,7 @@
 ;;               :meta {})]
 ;;     (emit-class ast frame)))
 
-;; (defmethod -emit :deftype               ;
+;; (defmethod -emit :deftype
 ;;   [{:keys [class-name] :as ast}
 ;;    frame]
 ;;   (let [class-name (.getName ^Class class-name)
@@ -1414,16 +1479,19 @@
   [{:keys [var meta init env] :as ast} frame]
   {:pre [(var? var)]}
   (emit (-> init
-            (assoc :var var))
-        (-> frame
-            (assoc :static? (-> var 
-                                clojure.core/meta
-                                :oxcart.passes.fn-reduction/static)))))
+            (assoc :var     var
+                   :static? (-> var clojure.core/meta :ox/static)))
+        frame))
 
 (defmethod -emit :fn
-  [{:keys [var variadic? env] :as ast}
-   {:keys [static?] :as frame}]
+  [{:keys [var variadic? static? env] :as ast}
+   {:keys [] :as frame}]
   (let [class-name (var->class var)
+
+        static?    (and (or static? false)
+                        (not (fn-primitive? ast))
+                        (not variadic?))
+
         super      (cond variadic?
                          ,,:clojure.lang.RestFn
 
@@ -1432,8 +1500,12 @@
 
                          :else
                          ,,:clojure.lang.AFunction)
+
         ast        (assoc ast
                      :class-name class-name
                      :super      super
                      :static?    static?)]
+    
+    (debug (format "Emitting class %40s | static? %s" class-name static?))
+
     (emit-class ast frame)))

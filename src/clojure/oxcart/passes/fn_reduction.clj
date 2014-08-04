@@ -77,7 +77,9 @@
                     (count (first raw-method))
                     (some (partial = '&)
                           (first raw-method)))
-                   {:ox/single true :ox/static true})
+                   {:static true
+                    :ox/single true
+                    :ox/static true})
         new-def `(def ~new-name (fn* ~raw-method))]
     (eval-in new-def env)
     (ast new-def env)))
@@ -196,7 +198,7 @@
     ast
     (if (or (contains? @munged-fns-atom
                        (pattern/def->var ast))
-            (-> ast :meta :val :single))
+            (-> ast :meta :val :ox/single))
       ast
       (let [top-level-forms (atom [])
             new-ast         (update ast :init

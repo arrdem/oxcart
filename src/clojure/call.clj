@@ -10,6 +10,6 @@
     (when (< i reps)
       (recur (inc i) (vcall accum)))))
 
-(defn -main [& args]
+(defn -main []
   (dotimes [_ 10]
     (time (bench 10000000))))

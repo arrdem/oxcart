@@ -18,7 +18,7 @@
              :refer [macroexpand-1
                      macroexpand]
              :as ana]
-            [clojure.tools.analyzer.ast :refer [prewalk]]
+            [clojure.tools.analyzer.ast :refer [prewalk postwalk]]
             [clojure.tools.analyzer.passes.elide-meta
              :refer [elides]]))
 
@@ -42,10 +42,14 @@
            (ana.jvm/analyze env)))))
 
 
-(defn clear-env
-  [ast]
-  (prewalk ast #(dissoc %1 :env)))
+(defn clear-env [ast]
+  (postwalk ast #(dissoc %1 :env)))
 
+(defn minimize [ast]
+  (postwalk ast
+            (fn [node]
+              (let [keep (into #{:op :var :id} (:children node))]
+                (reduce dissoc node (remove keep (keys node)))))))
 
 (defn take-when
   "λ (λ T → Bool) → (Seq T) → [(Option T) (Seq T)]

@@ -24,7 +24,8 @@
             [oxcart.passes.tree-shake            :refer [analyze-var-uses tree-shake analyze-var-dependencies]]
             [oxcart.passes.fn-reduction          :refer [reduce-fn-arities]]
             [oxcart.passes.defs                  :refer [locate-var-as-value]]
-            [clojure.tools.emitter.jvm.transform :refer [-compile]]))
+            [clojure.tools.emitter.jvm.transform :refer [-compile]]
+            [taoensso.timbre :as timbre          :refer [debug info warn]]))
 
 (defn write-class
   "(λ ClassName → Bytecode) → Nil
@@ -38,7 +39,7 @@
     (.mkdirs (io/file (.getParent file)))
     (with-open [w (java.io.FileOutputStream. path)]
       (.write w bytecode)
-      (println "Wrote class" name)))
+      (info "Wrote class" name)))
   nil)
 
 (defn preprocess-whole-ast
@@ -93,16 +94,25 @@
                       {:op     :method
                        :attr   #{:public :static}
                        :method `[[:main "java.lang.String[]"] :void]
-                       :code   `[[:start-method]
-                                 [:new-instance ~(e/var->class (resolve entry))]
+                       :code   (flatten
+                                [[:start-method]
+                                 (for [v (map pattern/def->var reach-defs)]
+                                   [[:push (str (var->ns v))]
+                                    [:push (str (var->name v))]
+                                    [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String] :clojure.lang.Var]
+                                    [:new-instance (e/var->class v)]
+                                    [:dup]
+                                    [:invoke-constructor [(keyword (e/var->class v) "<init>")] :void]
+                                    [:invoke-virtual [:clojure.lang.Var/bindRoot :java.lang.Object] :void]])
+                                 [:new-instance (e/var->class (resolve entry))]
                                  [:dup]
-                                 [:invoke-constructor [~(keyword (e/var->class (resolve entry)) "<init>")] :void]
+                                 [:invoke-constructor [(keyword (e/var->class (resolve entry)) "<init>")] :void]
                                  [:aload 0]
                                  [:invoke-static [:clojure.lang.RT/seq :java.lang.Object] :clojure.lang.ISeq]
                                  [:invoke-interface [:clojure.lang.IFn/applyTo :clojure.lang.ISeq] :java.lang.Object]
                                  [:pop]
                                  [:return-value]
-                                 [:end-method]]}]}))))
+                                 [:end-method]])}]}))))
 
 (defn emit
   "(λ Whole-AST → Options) → Nil

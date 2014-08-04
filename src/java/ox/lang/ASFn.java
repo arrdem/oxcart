@@ -13,9 +13,10 @@ package ox.lang;
 import clojure.lang.ArityException;
 
 public abstract class ASFn
-    extends clojure.lang.AFn {
+    extends clojure.lang.AFunction {
 
     public static String name;
+    public static ASFn self;
 
     public static Object invokeStatic(Object arg1) {
         return throwStaticArity(1);
