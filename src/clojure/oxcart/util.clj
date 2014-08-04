@@ -18,6 +18,7 @@
              :refer [macroexpand-1
                      macroexpand]
              :as ana]
+            [clojure.tools.analyzer.ast :refer [prewalk]]
             [clojure.tools.analyzer.passes.elide-meta
              :refer [elides]]))
 
@@ -39,6 +40,11 @@
        (-> (binding [macroexpand-1 ana.jvm/macroexpand-1]
              (macroexpand form env))
            (ana.jvm/analyze env)))))
+
+
+(defn clear-env
+  [ast]
+  (prewalk ast #(dissoc %1 :env)))
 
 
 (defn take-when
