@@ -7,7 +7,8 @@
 ;;   bound by the terms of this license.  You must not remove this
 ;;   notice, or any other, from this software.
 
-(ns oxcart.emitter.util)
+(ns oxcart.emitter.util
+  (:refer-clojure :exclude [flatten]))
 
 (defn instr?
   [x]
