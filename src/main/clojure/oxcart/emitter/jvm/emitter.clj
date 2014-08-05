@@ -214,10 +214,6 @@
   (cond (and (-> var meta :ox/static)
              (= :ctx.invoke/target (:context env)))
         ,,[] ;; no work do to
-        
-
-        (fn? @var)
-        ,,[[:get-static (:class frame) (str "const__" id) clojure.lang.IFn]]
 
         :else
         ,,(conj
@@ -839,7 +835,7 @@
 
 (defmethod -emit :fn-method
   [{:keys [params tag fixed-arity variadic? body env]}
-   {:keys [class static? class] :as frame}]
+   {:keys [class static?] :as frame}]
   (let [arg-tags               (mapv (comp prim-or-obj :tag) params)
         return-type            (prim-or-obj tag)
         tags                   (conj arg-tags return-type)
@@ -858,8 +854,6 @@
 
         ;; arg-types
         [loop-label end-label] (repeatedly label)]
-
-    (debug class " static? " static? " primitive? " primitive?)
 
     ;; should emit typed only when there's an interface, otherwise it's useless
     [{:op     :method
@@ -887,13 +881,30 @@
 
      (when primitive?
        {:op        :method
-        :attr      attr
+        :attr      #{:public}
         :interface prim-interface
-        :method    [(into [:invoke] (repeat (count params) :java.lang.Object))
-                    :java.lang.Object]
+        :method    [(into [:invoke] (repeat (count params) :java.lang.Object)) :java.lang.Object]
         :code      (flatten
                     [[:start-method]
                      [:load-this]
+                     (mapcat (fn [{:keys [tag]} id]
+                               `[~[:load-arg id]
+                                 ~@(emit-cast Object tag)])
+                             params (range))
+                     [:invoke-virtual (into [(keyword class "invokePrim")] arg-tags) return-type]
+                     (emit-cast return-type Object)
+                     [:return-value]
+                     [:end-method]])})
+     
+     (when (and primitive? static?)
+       {:op        :method
+        :attr      #{:public :static}
+        :interface prim-interface
+        :method    [(into [:invokeStatic] (repeat (count params) :java.lang.Object)) :java.lang.Object]
+        :code      (flatten
+                    [[:start-method]
+                     [:get-static (keyword class "self") :ox.lang.ASFn]
+                     [:check-cast class]
                      (mapcat (fn [{:keys [tag]} id]
                                `[~[:load-arg id]
                                  ~@(emit-cast Object tag)])
@@ -1063,13 +1074,6 @@
    [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String]
     :clojure.lang.Var]])
 
-(defmethod -emit-value :static-var [_ v]
-  [[:push (str (ns-name (.ns v)))]
-   [:push (name (.sym v))]
-   [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String] :clojure.lang.Var]
-   [:invoke-virtual [:clojure.lang.Var/getRawRoot] :java.lang.Object]
-   [:check-cast :clojure.lang.IFn]])
-
 (defn emit-values-as-array [list]
   `[[:push ~(int (count list))]
     [:new-array :java.lang.Object]
@@ -1211,17 +1215,6 @@
 ;; its own explicit emitter rather than getting all munged into this
 ;; one.
 
-(defn rewrite-constant-vars
-  [constants]
-  (map-vals constants
-   (fn [{:keys [val tag] :as v}]
-     (if-not (and (= tag clojure.lang.Var)
-                  (fn? @val))
-       v
-       (assoc v
-         :type :static-var
-         :tag  clojure.lang.IFn)))))
-
 (defn emit-class
   [{:keys [class-name meta methods variadic? static? constants
            closed-overs keyword-callsites protocol-callsites env
@@ -1232,10 +1225,9 @@
 
         constants          (->> constants
                                 (remove #(let [{:keys [tag type]} (val %)]
-                                            (or (primitive? tag)
-                                                (#{:string :bool} type))))
-                                 (into {})
-                                 rewrite-constant-vars)
+                                           (or (primitive? tag)
+                                               (#{:string :bool} type))))
+                                (into {}))
 
         consts             (vals constants)
         constant-table     (zipmap (mapv :id consts) consts)
@@ -1282,11 +1274,15 @@
                                          :tag  java.lang.Class}]))
                                    protocol-callsites)
 
-        name-field         (when (= super :ox.lang.ASFn)
-                             [{:op   :field
-                               :attr #{:public :static}
-                               :name :name
-                               :tag  :java.lang.String}])
+        static-fields        (when (= super :ox.lang.ASFn)
+                               [{:op   :field
+                                 :attr #{:public :static}
+                                 :name :name
+                                 :tag  :java.lang.String}
+                                {:op   :field
+                                 :attr #{:public :static}
+                                 :name :self
+                                 :tag  :ox.lang.ASFn}])
 
         deftype?           (= op :deftype)
         defrecord?         (contains? closed-overs '__meta)
@@ -1457,8 +1453,8 @@
      :class-name  class-name
      :name        (s/replace class-name \. \/)
      :super       (s/replace (name super) \. \/)
-     :interfaces  interfaces
-     :fields      (concat name-field
+     :interfaces  (into #{} interfaces)
+     :fields      (concat static-fields
                           consts
                           keyword-callsites
                           meta-field
@@ -1468,7 +1464,7 @@
                         (concat class-ctors defrecord-ctor deftype-methods
                                 variadic-method meta-methods
                                 (mapcat #(-emit % frame) methods)))}))
-  
+
 ;; (defmethod -emit :reify
 ;;   [{:keys [class-name] :as ast}
 ;;    frame]
@@ -1519,7 +1515,7 @@
                      :class-name class-name
                      :super      super
                      :static?    static?)]
-    
+
     (debug (format "Emitting class %40s | static? %s" class-name static?))
 
     (emit-class ast frame)))

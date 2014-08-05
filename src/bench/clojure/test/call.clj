@@ -1,4 +1,4 @@
-(ns call
+(ns test.call
   (:gen-class))
 
 (defn ^:static vcall ^long [^long i]

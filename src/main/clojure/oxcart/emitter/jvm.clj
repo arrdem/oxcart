@@ -42,6 +42,7 @@
       (info "Wrote class" name)))
   nil)
 
+
 (defn preprocess-whole-ast
   [whole-program options]
   (do-passes whole-program options

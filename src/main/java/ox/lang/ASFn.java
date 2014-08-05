@@ -16,6 +16,7 @@ public abstract class ASFn
     extends clojure.lang.AFunction {
 
     public static String name;
+
     public static ASFn self;
 
     public static Object invokeStatic(Object arg1) {

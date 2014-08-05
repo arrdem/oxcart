@@ -198,10 +198,12 @@
   [ast munged-fns-atom]
   (if-not (pattern/def? ast)
     ast
-    (if (or (contains? @munged-fns-atom
-                       (pattern/def->var ast))
-            (-> ast :meta :val :ox/single)
-            (= (count (:methods ast)) 1))
+    (if (let [the-var (pattern/def->var ast)]
+          (or (contains? @munged-fns-atom the-var)
+              (-> the-var meta :ox/single)
+              (when-let [fn (:init ast)]
+                (when-let [methods (:methods fn)]
+                  (= (count methods) 1)))))
       ast
       (let [top-level-forms (atom [])
             new-ast         (update ast :init
@@ -230,7 +232,7 @@
               (fn [{:keys [op fn args env] :as node}]
                 (if (and (= op :invoke)
                          (#{:var :the-var} (:op fn)))
-                  (if-let [arities (munged-fns (-> fn :var))]
+                  (if-let [arities (get munged-fns (-> fn :var))]
                     (if-let [var (get munged-fns
                                       (count args)
                                       (get munged-fns :variadic))]

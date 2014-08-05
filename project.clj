@@ -12,8 +12,9 @@
                  [com.taoensso/timbre            "3.2.1"]
                  ]
   :min-lein-version "2.0.0"
-  :source-paths ["src/clojure"]
-  :java-source-paths ["src/java"]
+  :source-paths ["src/main/clojure"
+                 "src/bench/clojure"]
+  :java-source-paths ["src/main/java"]
   :whitelist #"oxcart"
   :injections [(set! *print-length* 10)
                (set! *print-level*  10)])
