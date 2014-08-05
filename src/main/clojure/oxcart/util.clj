@@ -18,6 +18,7 @@
              :refer [macroexpand-1
                      macroexpand]
              :as ana]
+            [clojure.tools.analyzer.ast :refer [prewalk postwalk]]
             [clojure.tools.analyzer.passes.elide-meta
              :refer [elides]]))
 
@@ -40,6 +41,15 @@
              (macroexpand form env))
            (ana.jvm/analyze env)))))
 
+
+(defn clear-env [ast]
+  (postwalk ast #(dissoc %1 :env)))
+
+(defn minimize [ast]
+  (postwalk ast
+            (fn [node]
+              (let [keep (into #{:op :var :id} (:children node))]
+                (reduce dissoc node (remove keep (keys node)))))))
 
 (defn take-when
   "λ (λ T → Bool) → (Seq T) → [(Option T) (Seq T)]
@@ -117,8 +127,34 @@
          (assert false error))))
 
 
-(defn var-name
+(defn var->sym
   [v]
   (symbol
    (-> v .ns ns-name str)
    (-> v .sym str)))
+
+
+(defn var->name [v]
+  {:pre  [(var? v)]
+   :post [(symbol? %)]}
+  (-> v .sym))
+
+
+(defn var->ns [v]
+  {:pre  [(var? v)]
+   :post [(symbol? %)]}
+  (-> v .ns ns-name))
+
+
+(defn eval-in
+  "(λ Sexpr → Env) → Any
+
+  Helper for evaluating a given sexpr in another namespace as specified by a
+  TANAL env record/map. Returns the result of evaluating the sexpr in the other
+  environment."
+  [form {other-ns :ns :as env}]
+  (let [this (.name *ns*)]
+    (in-ns other-ns)
+    (let [res (clojure.core/eval form)]
+      (in-ns this)
+      res)))

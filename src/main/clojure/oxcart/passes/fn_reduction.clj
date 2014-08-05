@@ -52,7 +52,7 @@
 
 
 (defn fn-is-multiple-arity?
-  "λ AST → Boolean
+  "(λ AST) → Boolean
 
   Returns true if and only of the argument AST is both a function node
   and a function of more than one arity."
@@ -62,7 +62,7 @@
 
 
 (defn promote-method
-  "λ AST → List → Env → AST
+  "(λ AST → List → Env) → AST
 
   raw-method   is a raw list form
   env          is the containing environment
@@ -71,14 +71,18 @@
   Builds and yields a new AST representing a fn with a munged name
   having the provided method body for its only arity."
   [wrapping-def raw-method env]
-  (let [new-name (munge-symbol
-                  (pattern/def->symbol wrapping-def)
-                  (count (first raw-method))
-                  (some (partial = '&)
-                        (first raw-method)))]
-    (ast `(def ^:single ^:static ~new-name
-            (fn* ~raw-method))
-         env)))
+  (let [new-name (with-meta
+                   (munge-symbol
+                    (pattern/def->symbol wrapping-def)
+                    (count (first raw-method))
+                    (some (partial = '&)
+                          (first raw-method)))
+                   {:static true
+                    :ox/single true
+                    :ox/static true})
+        new-def `(def ~new-name (fn* ~raw-method))]
+    (eval-in new-def env)
+    (ast new-def env)))
 
 
 (defn write-body
@@ -88,7 +92,9 @@
   (let [[params & forms] raw-method
         new-params       (for [p params
                                :when (not (= p '&))]
-                           (gensym "OX__P"))
+                           (with-meta
+                             (gensym "OX__P")
+                             (meta p)))
 
         variadic?          (some (partial = '&) params)
 
@@ -111,7 +117,7 @@
    munged-fns-atom]
   (if (not (or (pattern/fn? fn-ast)
                (fn-is-multiple-arity? fn-ast)))
-    ast
+    fn-ast
     (let [[def-ast methods env]
           (if-let [fn-name (-> fn-ast :local :name)]
             ;; everything goes to shit and we need to do extra bindings work
@@ -173,7 +179,7 @@
 
 
 (defn rewrite-fn-decls
-  "λ AST → (atom {Var → (λ int → Var)}) → (U AST (Vec AST))
+  "(λ AST → (atom {Var → {(U Number :variadic) → Var}})) → (U AST (Vec AST))
 
   Rewrites top level forms into one or more top level forms. If a top
   level form is the def of a fn with multiple arities, the def is
@@ -190,26 +196,36 @@
   bound with defs, as by the requirement of lambda lifting this must
   be the set of all fns in the input program."
   [ast munged-fns-atom]
-  (if-not (pattern/def? ast)
-    ast
-    (if (or (contains? @munged-fns-atom
-                       (pattern/def->var ast))
-            (-> ast :meta :val :single))
-      ast
-      (let [top-level-forms (atom [])
-            new-ast         (update ast :init
-                                    update-through-meta
-                                    rewrite-fn
-                                    ast
-                                      top-level-forms
-                                      munged-fns-atom)]
-        (-> @top-level-forms
-            vec
-            (conj new-ast))))))
+  (cond (not (pattern/def? ast))
+        ,,ast
+        
+        (let [the-var (pattern/def->var ast)]
+          (or (contains? @munged-fns-atom the-var)
+              (-> the-var meta :ox/single)
+              (when-let [fn (:init ast)]
+                (when-let [methods (:methods fn)]
+                  (= (count methods) 1)))))
+        ,,(let [the-var (pattern/def->var ast)]
+            (alter-meta! the-var #(assoc %1 :ox/static true))
+            (when (= 1 (-> ast :init :methods count))
+              (alter-meta! the-var #(assoc %1 :ox/single true)))
+            ast)
+
+        :else
+        ,,(let [top-level-forms (atom [])
+                new-ast         (update ast :init
+                                        update-through-meta
+                                        rewrite-fn
+                                        ast
+                                        top-level-forms
+                                        munged-fns-atom)]
+            (-> @top-level-forms
+                vec
+                (conj new-ast)))))
 
 
 (defn rewrite-fn-invokes
-  "λ AST → (Atom {Var → {(U Number :variadic) → Var}}) → AST
+  "(λ AST → (Atom {Var → {(U Number :variadic) → Var}})) → AST
 
   Walks the argument AST, rewriting invoke nodes where it is possible
   to call a previously emitted single arity function rather than a
@@ -223,18 +239,18 @@
               (fn [{:keys [op fn args env] :as node}]
                 (if (and (= op :invoke)
                          (#{:var :the-var} (:op fn)))
-                  (if-let [arities (munged-fns (-> fn :var))]
+                  (if-let [arities (get munged-fns (-> fn :var))]
                     (if-let [var (get munged-fns
                                       (count args)
                                       (get munged-fns :variadic))]
-                      (assoc node :fn (ast (var-name var) env))
+                      (assoc node :fn (ast (var->sym var) env))
                       node)
                     node)
                   node)))))
 
 
 (defn reduce-fn-arities
-  "λ Whole-AST → Options → Whole-AST
+  "(λ Whole-AST → Options) → Whole-AST
 
   This pass walks the argument AST, examining function definitions and
   rewriting multiple arity functions into single arity functions when

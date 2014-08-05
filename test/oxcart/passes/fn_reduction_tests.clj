@@ -10,7 +10,7 @@
 (ns oxcart.passes.fn-reduction-tests
   (:require [oxcart.core :as oxcart]
             [oxcart.passes.fn-reduction :refer :all]
-            [oxcart.passes.emit-clj :as eclj]
+            [oxcart.emitter.clj :as eclj]
             [oxcart.test-util :refer [is-not]]
             [clojure.test :refer :all]))
 
@@ -31,7 +31,7 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (reduce-fn-arities {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval)))))
 
   ;; Taken as value case
@@ -49,7 +49,7 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (reduce-fn-arities {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval)))))
 
   ;; Recurs through name case
@@ -68,7 +68,7 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (reduce-fn-arities {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval)))))
 
   ;; Recurs through name which shadows def
@@ -91,5 +91,5 @@
                  (oxcart/eval case {:forms forms})
                  @forms)
                (reduce-fn-arities {})
-               (eclj/emit-clojure {})
+               (eclj/emit {})
                (eval))))))
