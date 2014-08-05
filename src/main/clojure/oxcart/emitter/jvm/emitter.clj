@@ -540,7 +540,6 @@
      ~@(emit else frame)
      [:mark ~end-label]]))
 
-
 (defn emit-args-and-invoke
   ([args frame] (emit-args-and-invoke args frame false))
   ([args {:keys [to-clear?] :as frame} proto?]
@@ -641,8 +640,6 @@
      [:insn :ISHR]
      [:push (int mask)]
      [:insn :IAND]]))
-
-
 
 (defn emit-test-ints
   [{:keys [test test-type] :as ast} frame default-label]
