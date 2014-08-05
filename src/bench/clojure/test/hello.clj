@@ -1,4 +1,4 @@
-(ns hello)
+(ns test.hello)
 
 (defn -main []
    (. (. System out)
