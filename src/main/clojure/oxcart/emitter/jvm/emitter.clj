@@ -13,7 +13,7 @@
 
 (ns oxcart.emitter.jvm.emitter
   (:refer-clojure :exclude [cast flatten])
-  (:require [oxcart.util :refer [var->name var->ns map-vals]]
+  (:require [oxcart.util :refer [var->name var->ns map-vals update]]
             [oxcart.emitter.util :refer [flatten]]
             [clojure.tools.analyzer.utils :as u]
             [clojure.tools.analyzer.jvm.utils :refer [primitive? numeric? box prim-or-obj] :as j.u]
@@ -213,7 +213,13 @@
   [{:keys [var env id] :as ast} {class :class :as frame}]
   (cond (and (-> var meta :ox/static)
              (= :ctx.invoke/target (:context env)))
-        ,,[] ;; no work do to
+        ,,(do (debug "Emitting" var "as no-op")
+              [])
+
+        (and (-> var meta :ox/static)
+             (= :ctx.invoke-static/target (:context env)))
+        ,,(do (debug "Emitting" var "as static field fetch")
+              [[:get-static (keyword (var->class var) "self") :ox.lang.ASFn]])
 
         :else
         ,,(conj
@@ -618,7 +624,8 @@
 
 (defmethod -emit :prim-invoke
   [{:keys [fn args ^Class prim-interface o-tag to-clear?]} frame]
-  `[~@(emit fn frame)
+  `[~@(emit (assoc-in fn [:env :context] :ctx.invoke-static/target)
+            frame)
     [:check-cast ~prim-interface]
     ~@(mapcat #(emit % frame) args)
     ~@(when to-clear?
@@ -910,6 +917,24 @@
                                  ~@(emit-cast Object tag)])
                              params (range))
                      [:invoke-virtual (into [(keyword class "invokePrim")] arg-tags) return-type]
+                     (emit-cast return-type Object)
+                     [:return-value]
+                     [:end-method]])})
+
+     (when (and static?
+                (not primitive?)
+                (not variadic?))
+       {:op        :method
+        :attr      #{:public}
+        :interface prim-interface
+        :method    [(into [:invoke] (repeat (count params) :java.lang.Object)) :java.lang.Object]
+        :code      (flatten
+                    [[:start-method]
+                     (mapcat (fn [{:keys [tag]} id]
+                               `[~[:load-arg id]
+                                 ~@(emit-cast Object tag)])
+                             params (range))
+                     [:invoke-static (into [(keyword class "invokeStatic")] arg-tags) :java.lang.Object]
                      (emit-cast return-type Object)
                      [:return-value]
                      [:end-method]])})]))

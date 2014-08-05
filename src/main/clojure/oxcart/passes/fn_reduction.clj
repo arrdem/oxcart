@@ -196,25 +196,32 @@
   bound with defs, as by the requirement of lambda lifting this must
   be the set of all fns in the input program."
   [ast munged-fns-atom]
-  (if-not (pattern/def? ast)
-    ast
-    (if (let [the-var (pattern/def->var ast)]
+  (cond (not (pattern/def? ast))
+        ,,ast
+        
+        (let [the-var (pattern/def->var ast)]
           (or (contains? @munged-fns-atom the-var)
               (-> the-var meta :ox/single)
               (when-let [fn (:init ast)]
                 (when-let [methods (:methods fn)]
                   (= (count methods) 1)))))
-      ast
-      (let [top-level-forms (atom [])
-            new-ast         (update ast :init
-                                    update-through-meta
-                                    rewrite-fn
-                                    ast
-                                      top-level-forms
-                                      munged-fns-atom)]
-        (-> @top-level-forms
-            vec
-            (conj new-ast))))))
+        ,,(let [the-var (pattern/def->var ast)]
+            (alter-meta! the-var #(assoc %1 :ox/static true))
+            (when (= 1 (-> ast :init :methods count))
+              (alter-meta! the-var #(assoc %1 :ox/single true)))
+            ast)
+
+        :else
+        ,,(let [top-level-forms (atom [])
+                new-ast         (update ast :init
+                                        update-through-meta
+                                        rewrite-fn
+                                        ast
+                                        top-level-forms
+                                        munged-fns-atom)]
+            (-> @top-level-forms
+                vec
+                (conj new-ast)))))
 
 
 (defn rewrite-fn-invokes

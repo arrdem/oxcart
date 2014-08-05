@@ -97,7 +97,9 @@
                        :method `[[:main "java.lang.String[]"] :void]
                        :code   (flatten
                                 [[:start-method]
-                                 (for [v (map pattern/def->var reach-defs)]
+
+                                 (for [v (map pattern/def->var reach-defs)
+                                       :when (not= v (resolve entry))]
                                    [[:push (str (var->ns v))]
                                     [:push (str (var->name v))]
                                     [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String] :clojure.lang.Var]
@@ -105,15 +107,23 @@
                                     [:dup]
                                     [:invoke-constructor [(keyword (e/var->class v) "<init>")] :void]
                                     [:invoke-virtual [:clojure.lang.Var/bindRoot :java.lang.Object] :void]])
-                                 [:new-instance (e/var->class (resolve entry))]
-                                 [:dup]
-                                 [:invoke-constructor [(keyword (e/var->class (resolve entry)) "<init>")] :void]
-                                 [:aload 0]
-                                 [:invoke-static [:clojure.lang.RT/seq :java.lang.Object] :clojure.lang.ISeq]
-                                 [:invoke-interface [:clojure.lang.IFn/applyTo :clojure.lang.ISeq] :java.lang.Object]
-                                 [:pop]
-                                 [:return-value]
-                                 [:end-method]])}]}))))
+
+                                 (let [v (resolve entry)]
+                                   [[:new-instance (e/var->class v)]
+                                    [:dup]
+                                    [:push (str (var->ns v))]
+                                    [:push (str (var->name v))]
+                                    [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String] :clojure.lang.Var]
+                                    [:swap]
+                                    [:dup]
+                                    [:invoke-constructor [(keyword (e/var->class v) "<init>")] :void]
+                                    [:invoke-virtual [:clojure.lang.Var/bindRoot :java.lang.Object] :void]
+                                    [:aload 0]
+                                    [:invoke-static [:clojure.lang.RT/seq :java.lang.Object] :clojure.lang.ISeq]
+                                    [:invoke-interface [:clojure.lang.IFn/applyTo :clojure.lang.ISeq] :java.lang.Object]
+                                    [:pop]
+                                    [:return-value]
+                                    [:end-method]])])}]}))))
 
 (defn emit
   "(λ Whole-AST → Options) → Nil
