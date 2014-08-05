@@ -76,7 +76,7 @@
 
 (defn eval
   "(λ form) → value
-   (λ form → config-map) → value
+  (λ form → config-map) → value
 
   Form is any Clojure sexpr, config map is a load configuration and
   value is an arbitrary Clojure value or class.
