@@ -25,8 +25,10 @@
             [clojure.tools.reader.reader-types :as readers]
             [oxcart.vars :refer :all]
             [oxcart.util :as util]
-            [oxcart.core-redefs])
-  (:import clojure.lang.IFn))
+            [oxcart.core-redefs]
+            [oxcart.emitter.jvm :refer [emit]])
+  (:import clojure.lang.IFn)
+  (:gen-class))
 
 
 (def root-directory
@@ -266,11 +268,7 @@
      (compile res nil))
 
   ([res {:keys [passes emitter settings] :as config}]
-     {:pre [(seq? passes)
-            (every? fn? passes)
-            (fn? emitter)]}
-     (let [forms  (atom [])
-           defs   (atom {})
+     (let [forms  (atom {})
            config {:debug? false
                    :exec?  true
                    :forms forms}]
@@ -294,3 +292,11 @@
                              (select-keys settings [:entry]))]
          (emitter @forms settings)))
      nil))
+
+(defn -main [namespace]
+  (let [the-ns (symbol namespace)
+        entry  (symbol namespace "-main")]
+    (compile (s/replace namespace #"\." "/")
+             {:emitter emit
+              :settings {:emitter {:entry entry}}}))
+  nil)
