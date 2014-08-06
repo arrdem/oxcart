@@ -299,4 +299,4 @@
     (compile (s/replace namespace #"\." "/")
              {:emitter emit
               :settings {:emitter {:entry entry}}}))
-  (System/exit 0))
+  nil)
