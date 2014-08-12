@@ -17,7 +17,7 @@
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
             [clojure.tools.analyzer.passes.jvm.emit-form :refer [emit-form]]
-            [clojure.tools.analyzer.passes.collect
+            [clojure.tools.analyzer.passes.collect-closed-overs
              :refer [collect-closed-overs]]
             [clojure.set :refer [union]]))
 
