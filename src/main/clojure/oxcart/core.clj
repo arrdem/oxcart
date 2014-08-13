@@ -234,8 +234,8 @@
 
 
 (defn load-ast
-  "(  Resource)   Whole-AST
-  (  Resource   Options)   Whole-AST
+ "(λ Resource) → Whole-AST
+ (λ Resource → Options) → Whole-AST
 
   Wrapper around the main load function which provides helper
   mechanics for the common case of wanting to load a resource and get
@@ -308,6 +308,7 @@
                              (select-keys settings [:entry]))]
          (emitter @forms settings)))
      nil))
+
 
 (defn -main [namespace]
   (let [the-ns (symbol namespace)
