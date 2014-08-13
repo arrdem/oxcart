@@ -39,6 +39,10 @@
   @#'clojure.core/gensym)
 
 
+(def clojure-eval
+  @#'clojure.core/eval)
+
+
 (def ^:dynamic *load-configuration*
   "Dynamic var that oxcart/load uses to stash its configuration.
 
