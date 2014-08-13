@@ -4776,18 +4776,6 @@
    :static true}
   [sep coll] (drop 1 (interleave (repeat sep) coll)))
 
-(defmacro definline
-  "Experimental - like defmacro, except defines a named function whose
-  body is the expansion, calls to which may be expanded inline as if
-  it were a macro. Cannot be used with variadic (&) args."
-  {:added "1.0"}
-  [name & decl]
-  (let [[pre-args [args expr]] (split-with (comp not vector?) decl)]
-    `(do
-       (defn ~name ~@pre-args ~args ~(apply (eval (list `fn args expr)) args))
-       (alter-meta! (var ~name) assoc :inline (fn ~name ~args ~expr))
-       (var ~name))))
-
 (defn empty
   "Returns an empty collection of the same category as coll, or nil"
   {:added "1.0"
@@ -4895,42 +4883,42 @@
   ([size-or-seq] (. clojure.lang.Numbers long_array size-or-seq))
   ([size init-val-or-seq] (. clojure.lang.Numbers long_array size init-val-or-seq)))
 
-(definline booleans
+(defmacro booleans
   "Casts to boolean[]"
   {:added "1.1"}
   [xs] `(. clojure.lang.Numbers booleans ~xs))
 
-(definline bytes
+(defmacro bytes
   "Casts to bytes[]"
   {:added "1.1"}
   [xs] `(. clojure.lang.Numbers bytes ~xs))
 
-(definline chars
+(defmacro chars
   "Casts to chars[]"
   {:added "1.1"}
   [xs] `(. clojure.lang.Numbers chars ~xs))
 
-(definline shorts
+(defmacro shorts
   "Casts to shorts[]"
   {:added "1.1"}
   [xs] `(. clojure.lang.Numbers shorts ~xs))
 
-(definline floats
+(defmacro floats
   "Casts to float[]"
   {:added "1.0"}
   [xs] `(. clojure.lang.Numbers floats ~xs))
 
-(definline ints
+(defmacro ints
   "Casts to int[]"
   {:added "1.0"}
   [xs] `(. clojure.lang.Numbers ints ~xs))
 
-(definline doubles
+(defmacro doubles
   "Casts to double[]"
   {:added "1.0"}
   [xs] `(. clojure.lang.Numbers doubles ~xs))
 
-(definline longs
+(defmacro longs
   "Casts to long[]"
   {:added "1.0"}
   [xs] `(. clojure.lang.Numbers longs ~xs))
