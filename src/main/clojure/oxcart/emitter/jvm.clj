@@ -25,7 +25,7 @@
             [oxcart.passes.fn-reduction          :refer [reduce-fn-arities]]
             [oxcart.passes.defs                  :refer [locate-var-as-value]]
             [clojure.tools.emitter.jvm.transform :refer [-compile]]
-            [taoensso.timbre :as timbre          :refer [debug info warn]]))
+            [oxcart.logging                      :refer [debug info warn]]))
 
 (defn write-class
   "(λ ClassName → Bytecode) → Nil

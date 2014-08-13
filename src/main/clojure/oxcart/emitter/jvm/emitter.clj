@@ -19,7 +19,7 @@
             [clojure.tools.analyzer.jvm.utils :refer [primitive? numeric? box prim-or-obj] :as j.u]
             [clojure.string :as s]
             [clojure.tools.emitter.jvm.intrinsics :refer [intrinsic intrinsic-predicate]]
-            [taoensso.timbre :as timbre :refer [debug info warn]])
+            [oxcart.logging :refer [debug info warn]])
   (:import clojure.lang.Reflector))
 
 (defmulti -emit (fn [{:keys [op]} _] op))

@@ -142,7 +142,7 @@
                      ;; Add to the accumulator for the whole read
                      ;; program. Note that the following forms are
                      ;; discarded:
-                     ;; 
+;                     ;; 
                      ;; - clojure.core/require
                      ;; - clojure.core/use
                      ;; - clojure.core/refer
@@ -215,21 +215,23 @@
        (binding [*ns*                 *ns*
                  *file*               p
                  *load-configuration* options]
-         (with-redefs [clojure.core/load   oxcart.core/load
-                       clojure.core/eval   oxcart.core/eval
-                       clojure.core/gensym oxcart.core/gensym]
-           (with-macro-redefs [#'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
-                               #'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
-                               #'clojure.core/deftype         @#'oxcart.core-redefs/deftype
-                               #'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
-                               #'clojure.core/proxy           @#'oxcart.core-redefs/proxy
-                               #'clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
-                               #'clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol]
-             (loop []
-               (let [form (r/read reader false eof)]
-                 (when (not= eof form)
-                   (eval form options)
-                   (recur))))))))
+         (loop []
+           (let [form (r/read reader false eof)]
+             (when (not= eof form)
+               (println (take 2 form))
+               (with-redefs [clojure.core/load   oxcart.core/load
+                             clojure.core/eval   oxcart.core/eval
+                             clojure.core/gensym oxcart.core/gensym]
+                 (with-macro-redefs [;#'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
+                                     ;#'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
+                                     ;#'clojure.core/deftype         @#'oxcart.core-redefs/deftype
+                                     ;#'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
+                                     ;#'clojure.core/proxy           @#'oxcart.core-redefs/proxy
+                                     ;#'clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
+                                     ;#'clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol
+                                     ]
+                   (eval form options)))
+               (recur))))))
   nil))
 
 
