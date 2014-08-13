@@ -139,10 +139,12 @@
                  (let [res (when (and eval?
                                       (not (= 'clojure.core (.name *ns*))))
                              (em.jvm/eval mform))]
-                   
-                   (let [ast (-> mform
-                                 (util/ast))]
-                     
+
+                   (let [ast (with-redefs [clojure.core/eval   oxcart.core/clojure-eval
+                                           clojure.core/gensym oxcart.core/gensym]
+                               (-> mform
+                                   (util/ast)))]
+
                      ;; Add to the accumulator for the whole read
                      ;; program. Note that the following forms are
                      ;; discarded:
