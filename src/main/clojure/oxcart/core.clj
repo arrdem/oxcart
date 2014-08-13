@@ -228,15 +228,7 @@
                (with-redefs [clojure.core/load   oxcart.core/load
                              clojure.core/eval   oxcart.core/eval
                              clojure.core/gensym oxcart.core/gensym]
-                 (with-macro-redefs [;#'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
-                                     ;#'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
-                                     ;#'clojure.core/deftype         @#'oxcart.core-redefs/deftype
-                                     ;#'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
-                                     ;#'clojure.core/proxy           @#'oxcart.core-redefs/proxy
-                                     ;#'clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
-                                     ;#'clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol
-                                     ]
-                   (eval form options)))
+                 (eval form options))
                (recur))))))
   nil))
 
