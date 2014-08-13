@@ -299,4 +299,5 @@
     (compile (s/replace namespace #"\." "/")
              {:emitter emit
               :settings {:emitter {:entry entry}}}))
+  (shutdown-agents)
   nil)
