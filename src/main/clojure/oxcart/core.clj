@@ -63,7 +63,7 @@
 
 (defn gensym
   "(λ) → Symbol
-   (λ → Prefix) → Symbol
+  (λ → Prefix) → Symbol
 
   Wrapper around clojure.core/gensym which adds metadata annotating
   generated symbols and permitting distinction between generated and
@@ -120,10 +120,10 @@
                    options (if (#{'clojure.core/ns 'ns} (first form))
                              (dissoc options :forms)
                              options)]
-               
+
                (doseq [expr statements]
                  (eval expr options))
-               
+
                (eval ret options))
 
              (nil? mform)
@@ -148,7 +148,7 @@
                      ;; Add to the accumulator for the whole read
                      ;; program. Note that the following forms are
                      ;; discarded:
-;                     ;; 
+                     ;;
                      ;; - clojure.core/require
                      ;; - clojure.core/use
                      ;; - clojure.core/refer
@@ -182,14 +182,14 @@
        (try
          (alter-var-root ~l (constantly ~r))
          (with-macro-redefs [~@bindings] ~@forms)
-         (finally 
+         (finally
            (alter-var-root ~l (constantly rootv#)))))
     `(do ~@forms)))
 
 
 (defn load
   "(λ String) → nil
-   (λ String → config-map) → nil
+  (λ String → config-map) → nil
 
   Loads a resource on the classpath identified by a string path as
   clojure code via eval for side-effects against the invoking Clojure
@@ -251,7 +251,7 @@
 
 (defn compile
   "(λ String) → nil
-   (λ String → config-map) → nil
+  (λ String → config-map) → nil
 
   Loads a resource via load, applies any compilation transformations
   specified in the config-map, emitting and loading the resulting
@@ -316,5 +316,4 @@
     (compile (s/replace namespace #"\." "/")
              {:emitter emit
               :settings {:emitter {:entry entry}}}))
-  (shutdown-agents)
   nil)
