@@ -46,11 +46,11 @@
 
 
 (deftest locate-var-as-value-test
-  (let [{:keys [usage] :as ast}
+  (let [{:keys [var-usage] :as ast}
         (locate-var-as-value victim-ast {})]
     (doseq [var [#'oxcart.passes.defs-test/foo
                  #'oxcart.passes.defs-test/quxx
                  #'oxcart.passes.defs-test/bar
                  #'oxcart.passes.defs-test/blat]]
-      (is (= (usage var) :value)))
-    (is (= :target (usage #'clojure.core/mod)))))
+      (is (= (var-usage var) :value)))
+    (is (= :target (var-usage #'clojure.core/mod)))))
