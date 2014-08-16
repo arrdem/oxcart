@@ -205,7 +205,6 @@
 (defn emit-var
   [{:keys [id]} frame]
   {:pre [id]}
-  (println id)
   ^:const
   [[:get-static (:class frame) (str "const__" id) clojure.lang.Var]])
 

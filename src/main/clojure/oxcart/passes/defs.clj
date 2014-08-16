@@ -131,8 +131,8 @@
   "λ Whole-AST → Options → Whole-AST
 
   Walks the argument AST, computing taken as value data for each
-  var. Creates a mapping `:usage' at the whole program level being
-  {Var → (U :value :target)}.
+  var. Creates a mapping `:var-usage' at the whole program level
+  being {Var → (U :value :target)}.
 
   A Var maps to :value if it is _ever_ taken as a value, and has
   the :target value if and only if it occurs only as a target or not
@@ -147,10 +147,10 @@
       (when var
         (assoc! m var
                 (if (and (= :var op)
-                         (not (= :value (get m node)))
-                         (= (-> node :env ::context) :invoke))
+                         (not= :value (get m var))
+                         (= :invoke (-> node :env ::context)))
                   :target
                   :value))))
     (-> whole-ast
-        (assoc :usage (persistent! m))
+        (assoc :var-usage (persistent! m))
         (record-pass locate-var-as-value))))

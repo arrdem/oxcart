@@ -295,7 +295,8 @@
        ;; "root" resource must load all depended resources, otherwise
        ;; there will be a symbol resolution error in the compiling
        ;; Clojure runtime.
-       (load res config)
+       (binding [clojure.core/*loaded-libs* (ref (sorted-set))]
+         (load res config))
 
        (let [settings (:passes settings)]
          (doseq [pass passes]

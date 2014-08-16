@@ -39,7 +39,7 @@
     (.mkdirs (io/file (.getParent file)))
     (with-open [w (java.io.FileOutputStream. path)]
       (.write w bytecode)
-      (info "Wrote class" name)))
+      (info "Wrote class  " name)))
   nil)
 
 
@@ -65,6 +65,7 @@
    {:keys [entry] :as options}]
   {:pre  [(symbol? entry)]}
   (let [whole-program (preprocess-whole-ast whole-program options)
+        var-usage     (:var-usage whole-program)
         reach         (-> whole-program (get :reach-map) (get (resolve entry)))
         reach-defs    (->> whole-program
                            whole-ast->forms
@@ -98,8 +99,24 @@
                        :code   (flatten
                                 [[:start-method]
 
-                                 (for [v (map pattern/def->var reach-defs)
-                                       :when (not= v (resolve entry))]
+                                 ;; FIXME:
+                                 ;;   this works fine for fn
+                                 ;;   defs, but will bomb for non-fn
+                                 ;;   defs. Which is kinda a problem.
+
+                                 ;; FIXME:
+                                 ;;   This puts an implicit bound on
+                                 ;;   the number of defs which can
+                                 ;;   exist in a program due to the
+                                 ;;   method size.
+
+                                 ;; Inter vars for all value-used defs
+                                 (for [form (whole-ast->forms whole-program)
+                                       :when (pattern/def? form)
+                                       :let  [v (pattern/def->var form)]
+                                       :when (and (not= v (resolve entry)) ;; FIXME this could be a subtle bug
+                                                  (reach v)
+                                                  (= :value (get var-usage v)))]
                                    [[:push (str (var->ns v))]
                                     [:push (str (var->name v))]
                                     [:invoke-static [:clojure.lang.RT/var :java.lang.String :java.lang.String] :clojure.lang.Var]
@@ -108,6 +125,7 @@
                                     [:invoke-constructor [(keyword (e/var->class v) "<init>")] :void]
                                     [:invoke-virtual [:clojure.lang.Var/bindRoot :java.lang.Object] :void]])
 
+                                 ;; Var install and call the main def
                                  (let [v (resolve entry)]
                                    [[:new-instance (e/var->class v)]
                                     [:dup]

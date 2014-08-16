@@ -99,14 +99,12 @@
         variadic?          (some (partial = '&) params)
 
         new-form         (if variadic?
-                           (list (vec (concat (butlast new-params) ['&] [(last new-params)]))
-                                 (concat (list 'apply)
-                                         (list (pattern/def->symbol promoted-method))
-                                         new-params))
-                           (list (vec new-params)
-                                 (concat (list (pattern/def->symbol promoted-method))
-                                         new-params)))]
-
+                           `([~@(butlast new-params) ~'& ~(last new-params)]
+                               (~'apply ~(pattern/def->symbol promoted-method)
+                                        ~@new-params))
+                           `([~@new-params]
+                               (~(pattern/def->symbol promoted-method)
+                                ~@new-params)))]
     new-form))
 
 
