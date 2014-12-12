@@ -35,8 +35,7 @@
      (binding [ana/macroexpand-1 ana.jvm/macroexpand-1
                ana/create-var    ana.jvm/create-var
                ana/parse         ana.jvm/parse
-               ana/var?          var?
-               elides            (into #{:line :column :end-line :end-column :file :source} elides)]
+               ana/var?          var?]
        (-> (binding [macroexpand-1 ana.jvm/macroexpand-1]
              (macroexpand form env))
            (ana.jvm/analyze env)))))

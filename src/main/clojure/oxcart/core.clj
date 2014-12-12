@@ -233,6 +233,22 @@
   nil))
 
 
+(defn load-ast
+  "(  Resource)   Whole-AST
+  (  Resource   Options)   Whole-AST
+
+  Wrapper around the main load function which provides helper
+  mechanics for the common case of wanting to load a resource and get
+  a whole program AST as a return value."
+  ([res]
+     (load-ast res {}))
+
+  ([res opts]
+     (let [forms (atom {})]
+       (load res (merge opts {:forms forms}))
+       @forms)))
+
+
 (defn compile
   "(λ String) → nil
    (λ String → config-map) → nil
@@ -299,4 +315,5 @@
     (compile (s/replace namespace #"\." "/")
              {:emitter emit
               :settings {:emitter {:entry entry}}}))
+  (shutdown-agents)
   nil)
