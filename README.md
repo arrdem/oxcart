@@ -24,54 +24,72 @@ between
 [tools.analyzer.jvm](https://github.com/clojure/tools.analyzer.jvm)
 and some future `tools.optimizer.jvm`.
 
-## Documentation & Caveats
+Oxcart is currently on indefinite hiatus, pending changes to Clojure
+addressing the current `clojure.lang.RT` `<cinit>` behavior of loading
+clojure/core from source. See the blog posts for more information.
 
-Oxcart does not seek to compile all valid clojure programs. The
-existing JVM Clojure reference implementation already does that
-job. Oxcart is intended to compile a reasonable and valuable subset of
-clojure programs which do not extensively leverage runtime dynamism
-with an eye to whole program optimization and performance
-improvements. Some unsupported dynamic behavior will be detected by
-Oxcart and will result in compile time errors.
+## Blog Posts
 
-Unsupported forms include but are not limited to
+Stuff I read prior to starting Oxcart
 
- - `clojure.core/eval`
- - `clojure.core/load`
- - `clojure.core/read-string`
- - `clojure.core/resolve`
- - `clojure.core/alter-var-root`
- - `set!`
+ - [Clojure Compilation](http://nicholaskariniemi.github.io/2014/01/26/clojure-compilation.html)
+ - [Clojure Compilation: Full Disclojure](http://nicholaskariniemi.github.io/2014/02/06/clojure-compilation2.html)
+ - [Why is Clojure bootstrapping so slow?](http://nicholaskariniemi.github.io/2014/02/25/clojure-bootstrapping.html)
 
-Oxcart seeks to perform a number of performance impacting
-transformations, including the following
+Oxcart posts
 
- 1. Tree shaking for var elimination, including Clojure core and user specified libraries.
- 2. Elimination of vars as a dynamic dispatch mechanism
- 3. Elimination of function level implementation classes in favor of namespace or whole program level implementation classes.
- 4. Inlining of functions
+ - [Oxcart and Clojure](http://arrdem.com/2014/06/26/oxcart_and_clojure/)
+ - [Of Oxen, Carts and Ordering](http://arrdem.com/2014/08/05/of_oxen,_carts_and_ordering/)
+ - [lib-clojure](https://groups.google.com/forum/#!searchin/clojure-dev/lib-clojure/clojure-dev/dSPUNKSaV94/gTikbqYhJTYJ)
+ - [Oxcart going forwards](http://arrdem.com/2014/12/11/oxcart_going_forwards/)
 
-What do these program transformations mean? Quite simply that for some
-configurations Oxcart bytecode is not compatible with reference JVM
-Clojure implementation. An obvious example of this is function
-inlining. On the reference JVM Clojure implementation, every function
-has an implementing class and these are all loaded lazily at program
-start. Instances of these classes are wrapped in `clojure.lang.Var`
-instances and are interned in Clojure's global symbol table. This is
-all well and good for a naive language implementation but it is
-possible to do much better. By eliminating dynamic var access either
-via `read-string`, `Var` or `eval`, Oxcart can statically prove that
-your program will never take some function F as a value and thus that
-it is wasteful to implement it as a fully fledged class when it could
-be compacted. This means that attempts attempt to load an Oxcart
-produced JAR or class from the REPL and interact with it as though it
-were normal Clojure bytecode will almost certainly fail. Some Oxcart
-configurations may provide full reference Clojure interop however this
-behavior is low priority at present.
+## Demos
 
- - [Documentation](doc/index.md)
- - [Changelog](CHANGES.org)
- - [TODO list](TODO.org)
+The script "bench.sh" in the root of the Oxcart project is designed to
+run the various Oxcart benchmarks with minimal effort. Usage is `bash
+bench.sh NS` where `NS` is the namespace in the Oxcart source tree to
+be run as a benchmark. That namespace will be loaded first with
+Clojure 1.6, and then compiled & run via Oxcart. Runs are wraped in
+`time` invocations, although several benchmarks do their own timing
+internally.
+
+### test.call
+
+Usage: `bash bench.sh test.call`
+
+This namespace is designed to assess the cost of making function calls
+between Oxcart and core Clojure. It repeatedly invokes the
+`test.call/vcall` function to perform primitive arithmetic and is
+intended to measure the speedup from eliminating var indirection on
+`test.call/vcall`.
+
+### test.hello
+
+Usage: `bash bench.sh test.hello`
+
+This namespace just prints "Hello, World" as a test. Not actually a
+benchmark, unless you want to measure how long it takes to boot a
+Clojure instance, do minimal work and exit.
+
+### test.load
+
+Usage: `bash bench.sh test.load`
+
+This namespace loads a slightly modified version of `test.vars`,
+except that all the vars but `test.load/-main` are unreachable. This
+is intended as a demonstration of how slow it is to compile programs
+from source compared to loading them from compiled classes.
+
+### test.vars
+
+Usage: `bash bench.sh test.vars`
+
+This namespace defines 502 functions, most of which are trivial, and
+then calls a random set of them in a tight loop. This is also designed
+to stress the costs of var indirection as the tight loop function is
+much too large to reasonably inline across and the set of vars called
+in each iteration is random on each pair of possible functions which
+kills the branch predictor and increases the inlining cost.
 
 ## License
 
