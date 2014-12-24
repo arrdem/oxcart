@@ -93,6 +93,6 @@ kills the branch predictor and increases the inlining cost.
 
 ## License
 
-Copyright © 2014 Reid McKenzie, Rich Hickey & contributors.
+Copyright © 2014 Reid McKenzie.
 
 Distributed under the Eclipse Public License, the same as Clojure.
