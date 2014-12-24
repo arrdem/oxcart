@@ -30,14 +30,11 @@
   (:import clojure.lang.IFn)
   (:gen-class))
 
-
 (def root-directory
   @#'clojure.core/root-directory)
 
-
 (def clojure-gensym
   @#'clojure.core/gensym)
-
 
 (def ^:dynamic *load-configuration*
   "Dynamic var that oxcart/load uses to stash its configuration.
@@ -52,10 +49,8 @@
   nil by default, may be a valid configuration map for oxcart/load."
   nil)
 
-
 (defn atom? [x]
   (instance? clojure.lang.Atom x))
-
 
 (defn gensym
   "(λ) → Symbol
@@ -74,7 +69,6 @@
      (with-meta
        (clojure-gensym x)
        {:gensym true})))
-
 
 (defn eval
   "(λ form) → value
@@ -165,7 +159,6 @@
                                                       (.name *ns*))))))))
                    res))))))
 
-
 (defmacro with-macro-redefs
   "Bindings is a sequence of pairs of symbols, where the left hand
   side name macros and the right hand side names a new function which
@@ -179,7 +172,6 @@
          (finally 
            (alter-var-root ~l (constantly rootv#)))))
     `(do ~@forms)))
-
 
 (defn load
   "(λ String) → nil
@@ -232,7 +224,6 @@
                    (recur))))))))
   nil))
 
-
 (defn load-ast
   "(  Resource)   Whole-AST
   (  Resource   Options)   Whole-AST
@@ -247,7 +238,6 @@
      (let [forms (atom {})]
        (load res (merge opts {:forms forms}))
        @forms)))
-
 
 (defn compile
   "(λ String) → nil
