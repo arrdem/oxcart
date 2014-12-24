@@ -8,11 +8,11 @@
             [clojure.set :refer [union]]))
 
 (defn- locate-defs-in-module
-  "λ Module → options → Module
+  "λ [options Module] → Module
 
   Helper function which implements definition location within the
   context of a single module."
-  [module options]
+  [options module]
   (->> (for [form (:forms module)
              :when (pattern/def? form)]
          [(pattern/def->symbol form) form])
@@ -20,11 +20,11 @@
        (assoc module :symbols)))
 
 (defn- locate-publics-in-module
-  "λ Module → options → Module
+  "λ [options Module] → Module
 
   Helper function which finds public symbols in the Module and creates
   the appropriate :public key in the module."
-  [module options]
+  [options module]
   (let [defs (:symbols module)]
     (->> (for [[symbol form] defs
                :when (pattern/public? form)]
@@ -33,11 +33,11 @@
          (assoc module :public))))
 
 (defn- locate-privates-in-module
-  "λ Module → options → Module
+  "λ [options Module] → Module
 
   Helper function which finds private symbols in the Module and
   creates the appropriate :private key in the module."
-  [module options]
+  [options module]
   (let [defs (:symbols module)]
     (->> (for [[symbol form] defs
                :when (pattern/private? form)]
@@ -46,11 +46,11 @@
          (assoc module :private))))
 
 (defn- locate-consts-in-module
-  "λ Module → options → Module
+  "λ [options Module] → Module
 
   Helper function which finds private symbols in the Module and
   creates the appropriate :cost key in the module."
-  [module options]
+  [options module]
   (let [defs (:symbols module)]
     (->> (for [[symbol form] defs
                :when (pattern/const? form)]
@@ -59,11 +59,11 @@
          (assoc module :const))))
 
 (defn- locate-dynamics-in-module
-  "λ Module → options → Module
+  "λ [options Module] → Module
 
   Helper function which finds private symbols in the Module and
   creates the appropriate :dynamic key in the module."
-  [module options]
+  [options module]
   (let [defs (:symbols module)]
     (->> (for [[symbol form] defs
                :when (pattern/dynamic? form)]
@@ -92,13 +92,11 @@
   [{:keys [modules] :as ast} options]
   (-> ast
       (update-modules
-       (fn [x]
-         (-> x
-             (locate-defs-in-module     options)
-             (locate-publics-in-module  options)
-             (locate-privates-in-module options)
-             (locate-consts-in-module   options)
-             (locate-dynamics-in-module options))))
+       (comp (partial locate-dynamics-in-module options)
+             (partial locate-consts-in-module   options)
+             (partial locate-privates-in-module options)
+             (partial locate-publics-in-module  options)
+             (partial locate-defs-in-module     options)))
       (record-pass locate-defs)))
 
 (defn write-context
