@@ -1,12 +1,3 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
-;;   and distribution terms for this software are covered by the
-;;   Eclipse Public License 1.0
-;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
-;;   found in the file epl-v10.html at the root of this distribution.
-;;   By using this software in any fashion, you are agreeing to be
-;;   bound by the terms of this license.  You must not remove this
-;;   notice, or any other, from this software.
-
 (ns oxcart.passes.tree-shake
   {:doc "Implements a tree shaking pass intended to be run after def analysis."
    :author "Reid McKenzie"
@@ -19,7 +10,6 @@
             [clojure.tools.analyzer.ast :as ast]
             [taoensso.timbre :refer [info warn]]))
 
-
 (defn reach-set
   "(λ AST) → #{Var}
 
@@ -29,7 +19,6 @@
        ast/nodes
        (keep :var)
        (into #{})))
-
 
 (defn -step-reach-set
   "(λ {T → #{T}}) → {T → #{T}}
@@ -43,14 +32,12 @@
                    (reduce set/union deps))])
        (into {})))
 
-
 (defn global-reach-set
   "(λ {T → #{T}}) → {T → #{T}}
 
   Computes the reach set for an entire program"
   [symbol-dep-tree]
   (util/fix -step-reach-set symbol-dep-tree))
-
 
 (defn trim-with-emit-set
   "(λ Whole-AST → #{Var}) → Whole-AST
@@ -66,7 +53,6 @@
                     ast
                     (do (info "Discarding unused def form," (util/format-line-info ast))
                         nil)))))
-
 
 (defn analyze-var-dependencies
   "(λ Whole-AST → options) → Whole-AST
@@ -97,7 +83,6 @@
                :reach-map      reach-map)
         (record-pass analyze-var-dependencies))))
 
-
 (defn tree-shake
   "(λ Whole-AST → options) → Whole-AST
 
@@ -123,7 +108,6 @@
         (trim-with-emit-set emit-set)
         (clobber-passes))))
 
-
 (defn deps-to-uses
   "(λ {Var → #{Var}}) → {Var → #{Var}}
 
@@ -139,7 +123,6 @@
             dep        deps]
       (swap! acc update-in [dep] sconj var))
     @acc))
-
 
 (defn analyze-var-uses
   "(λ Whole-AST → Options) → Whole-AST

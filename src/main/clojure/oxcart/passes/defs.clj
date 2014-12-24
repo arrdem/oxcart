@@ -1,12 +1,3 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
-;;   and distribution terms for this software are covered by the
-;;   Eclipse Public License 1.0
-;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
-;;   found in the file epl-v10.html at the root of this distribution.
-;;   By using this software in any fashion, you are agreeing to be
-;;   bound by the terms of this license.  You must not remove this
-;;   notice, or any other, from this software.
-
 (ns oxcart.passes.defs
   {:doc "Implements a var->def form location analysis pass for the Oxcart compiler."
    :added "0.0.2"
@@ -15,7 +6,6 @@
             [oxcart.passes :refer :all]
             [clojure.tools.analyzer.ast :as ast]
             [clojure.set :refer [union]]))
-
 
 (defn- locate-defs-in-module
   "λ Module → options → Module
@@ -28,7 +18,6 @@
          [(pattern/def->symbol form) form])
        (into {})
        (assoc module :symbols)))
-
 
 (defn- locate-publics-in-module
   "λ Module → options → Module
@@ -43,7 +32,6 @@
          (into #{})
          (assoc module :public))))
 
-
 (defn- locate-privates-in-module
   "λ Module → options → Module
 
@@ -56,7 +44,6 @@
            symbol)
          (into #{})
          (assoc module :private))))
-
 
 (defn- locate-consts-in-module
   "λ Module → options → Module
@@ -71,7 +58,6 @@
          (into #{})
          (assoc module :const))))
 
-
 (defn- locate-dynamics-in-module
   "λ Module → options → Module
 
@@ -84,7 +70,6 @@
            symbol)
          (into #{})
          (assoc module :dynamic))))
-
 
 ;; FIXME
 ;;   This pass is T(n) = 5*n, which is quite likely going to be a
@@ -116,7 +101,6 @@
              (locate-dynamics-in-module options))))
       (record-pass locate-defs)))
 
-
 (defn write-context
   [node]
   (-> node
@@ -125,7 +109,6 @@
          (cond (= :invoke (:op node))
                (assoc-in node [:fn :env ::context] :invoke)
                true node)))))
-
 
 (defn locate-var-as-value
   "λ Whole-AST → Options → Whole-AST
