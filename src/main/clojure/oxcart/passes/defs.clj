@@ -74,7 +74,7 @@
 ;; FIXME
 ;;   This pass is T(n) = 5*n, which is quite likely going to be a
 ;;   problem if iterated def location becomes an analysis
-;;   priority. Squashing all the locate-*-9n-module operations into a
+;;   priority. Squashing all the locate-*-in-module operations into a
 ;;   single efficient pass over a single module would be slick.
 
 (defn locate-defs
@@ -91,14 +91,12 @@
     :dynamic is the set of symbols marked dynamic."
   [{:keys [modules] :as ast} options]
   (-> ast
-      (update-modules 
-       (fn [module]
-         (-> module
-             (locate-defs-in-module     options)
-             (locate-publics-in-module  options)
-             (locate-privates-in-module options)
-             (locate-consts-in-module   options)
-             (locate-dynamics-in-module options))))
+      (update-modules
+       (comp (partial locate-dynamics-in-module options)
+             (partial locate-consts-in-module   options)
+             (partial locate-privates-in-module options)
+             (partial locate-publics-in-module  options)
+             (partial locate-defs-in-module     options)))
       (record-pass locate-defs)))
 
 (defn write-context
@@ -107,8 +105,10 @@
       (ast/prewalk
        (fn [node]
          (cond (= :invoke (:op node))
-               (assoc-in node [:fn :env ::context] :invoke)
-               true node)))))
+               ,,(assoc-in node [:fn :env ::context] :invoke)
+
+               true
+               ,,node)))))
 
 (defn locate-var-as-value
   "λ Whole-AST → Options → Whole-AST

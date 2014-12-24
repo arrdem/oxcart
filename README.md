@@ -91,6 +91,13 @@ much too large to reasonably inline across and the set of vars called
 in each iteration is random on each pair of possible functions which
 kills the branch predictor and increases the inlining cost.
 
+## Limitations & Assumptions
+
+ - Defs are all static
+ - Metadata does not exist on top level forms
+ - All metadata on defs, namespaces can be discarded
+ 
+
 ## License
 
 Copyright © 2014 Reid McKenzie.
