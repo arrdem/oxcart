@@ -92,11 +92,13 @@
   [{:keys [modules] :as ast} options]
   (-> ast
       (update-modules
-       (comp (partial locate-dynamics-in-module options)
-             (partial locate-consts-in-module   options)
-             (partial locate-privates-in-module options)
-             (partial locate-publics-in-module  options)
-             (partial locate-defs-in-module     options)))
+       (fn [x]
+         (-> x
+             (locate-defs-in-module     options)
+             (locate-publics-in-module  options)
+             (locate-privates-in-module options)
+             (locate-consts-in-module   options)
+             (locate-dynamics-in-module options))))
       (record-pass locate-defs)))
 
 (defn write-context
