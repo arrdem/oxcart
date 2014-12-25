@@ -15,6 +15,7 @@
   :min-lein-version "2.0.0"
   :source-paths ["src/main/clojure"
                  "src/bench/clojure"]
+  :test-paths   ["src/test/clojure"]
   :java-source-paths ["src/main/java"]
   :whitelist #"oxcart"
   :injections [(set! *print-length* 10)

@@ -1,12 +1,3 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
-;;   and distribution terms for this software are covered by the
-;;   Eclipse Public License 1.0
-;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
-;;   found in the file epl-v10.html at the root of this distribution.
-;;   By using this software in any fashion, you are agreeing to be
-;;   bound by the terms of this license.  You must not remove this
-;;   notice, or any other, from this software.
-
 (ns oxcart.core-redefs
   {:doc "Provides alternative implementations of clojure.core
         functions and macros used by the Oxcart compiler to handle
@@ -27,7 +18,6 @@
   (:refer-clojure :exclude [ns *loaded-libs* defmulti defmethod
                             deftype defprotocol extend-type
                             extend-protocol proxy]))
-
 
 ;; FIXME:
 ;;   This is currently dead code. Do I need a custom implementation of
@@ -93,7 +83,6 @@
                  @#'clojure.core/*loaded-libs*
                  clojure.core/conj '~name)))))))
 
-
 ;; FIXME
 ;;
 ;;   Do I need to do crazy stuff to rewrite defrecord, defprotocol,
@@ -103,7 +92,6 @@
 ;;   try to capture these classes and emit them AOT (which I think
 ;;   clojure.core/compile can do) but that's out of scope for the
 ;;   moment.
-
 
 (defmacro oxcart.core-redefs/defmulti
   [name & _]

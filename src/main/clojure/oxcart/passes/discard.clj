@@ -1,12 +1,3 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
-;;   and distribution terms for this software are covered by the
-;;   Eclipse Public License 1.0
-;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
-;;   found in the file epl-v10.html at the root of this distribution.
-;;   By using this software in any fashion, you are agreeing to be
-;;   bound by the terms of this license.  You must not remove this
-;;   notice, or any other, from this software.
-
 (ns oxcart.passes.discard
   {:doc "This namespace implements a number of form discarding passes
         over the Oxcart module system."
@@ -15,7 +6,6 @@
   (:require [oxcart.util    :as util]
             [oxcart.passes  :as passes]
             [oxcart.pattern :as pattern]))
-
 
 (defn def->macro?
   "λ AST → (U True False)
@@ -31,7 +21,6 @@
       :macro
       (or false)))
 
-
 (defn discard-forms
   "Helper function to discard-macros, composes a number of predicates
   in order to determine what forms should be discarded from the
@@ -45,7 +34,6 @@
      (when (->> (map #(%1 form) preds)
                 (some identity))
        form))))
-
 
 (defn discard-macros
   "λ Whole-AST → Options → Whole-AST

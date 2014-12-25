@@ -1,12 +1,3 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
-;;   and distribution terms for this software are covered by the
-;;   Eclipse Public License 1.0
-;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
-;;   found in the file epl-v10.html at the root of this distribution.
-;;   By using this software in any fashion, you are agreeing to be
-;;   bound by the terms of this license.  You must not remove this
-;;   notice, or any other, from this software.
-
 (ns oxcart.passes.warnings
   {:doc "Implements static error detection passes for Oxcart."
    :author "Reid McKenzie"
@@ -21,7 +12,6 @@
             [oxcart.passes.tree-shake :refer [analyze-var-dependencies]]
             [taoensso.timbre :refer [warn error]]))
 
-
 (def banned-vars
   "Vars which Oxcart does not support at all.
 
@@ -32,7 +22,6 @@
     #'clojure.core/load
     #'clojure.core/read-string
     #'clojure.core/alter-var-root})
-
 
 (def dangerous-vars
   "Vars which Oxcart does not currently support.
@@ -53,7 +42,6 @@
     ;; namespace introspection stuff is pretty sketch too
     #'clojure.core/ns-resolve
     #'clojure.core/find-var})
-
 
 (defn check-vars
   "λ Whole-AST → options → Whole-AST
@@ -144,17 +132,14 @@
      (-> whole-ast
          (record-pass check-vars))))
 
-
 (def banned-ops
   "AST operations which are banned due to their violation of Oxcart's
   static assumptions."
   #{:def})
 
-
 (def dangerous-ops
   "Supported AST operations which are dangerous, but not always illegal."
   #{:set!})
-
 
 (defn check-ops
   "λ Whole-AST → options → Whole-AST
@@ -201,7 +186,6 @@
             "Errors were generated in checking."))
   (-> whole-ast
       (record-pass check-ops)))
-
 
 (defn check-top-level
   "λ Whole-AST → options → Whole-AST

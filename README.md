@@ -48,10 +48,12 @@ Oxcart posts
 The script "bench.sh" in the root of the Oxcart project is designed to
 run the various Oxcart benchmarks with minimal effort. Usage is `bash
 bench.sh NS` where `NS` is the namespace in the Oxcart source tree to
-be run as a benchmark. That namespace will be loaded first with
-Clojure 1.6, and then compiled & run via Oxcart. Runs are wraped in
-`time` invocations, although several benchmarks do their own timing
-internally.
+be run as a benchmark. `bash bench.sh all` will search for benchmarks
+on the classpath and run all of them. When benchmarking a namespace,
+that namespace will be loaded first with Clojure 1.6, and then
+compiled & run via Oxcart and then run with Clojure 1.6. Runs are
+wraped in `time` invocations, although several benchmarks do their own
+timing internally.
 
 ### test.call
 
@@ -91,8 +93,14 @@ much too large to reasonably inline across and the set of vars called
 in each iteration is random on each pair of possible functions which
 kills the branch predictor and increases the inlining cost.
 
+## Limitations & Assumptions
+
+ - Defs are all static
+ - Metadata does not exist on top level forms
+ - All metadata on defs, namespaces can be discarded
+
 ## License
 
-Copyright © 2014 Reid McKenzie, Rich Hickey & contributors.
+Copyright © 2014 Reid McKenzie.
 
 Distributed under the Eclipse Public License, the same as Clojure.

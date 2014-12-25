@@ -1,12 +1,3 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
-;;   and distribution terms for this software are covered by the
-;;   Eclipse Public License 1.0
-;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
-;;   found in the file epl-v10.html at the root of this distribution.
-;;   By using this software in any fashion, you are agreeing to be
-;;   bound by the terms of this license.  You must not remove this
-;;   notice, or any other, from this software.
-
 (ns oxcart.passes.lambda-lift
   {:doc "Implements lambda lifting designed to be run before symbol
         def analysis."
@@ -21,14 +12,12 @@
              :refer [collect-closed-overs]]
             [clojure.set :refer [union]]))
 
-
 (defn fn*->cannonical-fn*
   [[_fn* & more]]
   (let [[_sym more] (util/take-when symbol? more)]
     (if (vector? (first more))
       `(fn* (~@more))
       `(fn* ~@more))))
-
 
 (defn rewrite-fn*
   [form locals]
@@ -37,13 +26,11 @@
               `([~@locals ~@params]
                   ~@body)))))
 
-
 (defn rewrite-locals
   [mapping ast]
   (if (pattern/local? ast)
     (get mapping (:name ast) ast)
     ast))
-
 
 (defn merge-deps
   [mapping]
@@ -53,7 +40,6 @@
                  (keep identity)
                  (reduce union v))])
        (into {})))
-
 
 (defn rewrite-closed-overs
   [mapping binding]
@@ -68,7 +54,6 @@
                                           (:name le))]
                      [l le])
                    (into {})))))
-
 
 (defn lift-fns
   [defs-atom ast]
@@ -195,7 +180,6 @@
         ;; term as a chile, which will be handled by the local case.
         ast))
 
-
 (defn push-down-top-level
   "Helper pass which serves to push down the :top-level annotation to
   the direct children of top level forms. This allows the lambda
@@ -208,7 +192,6 @@
      (fn [node]
        (assoc node :top-level true)))
     ast))
-
 
 (defn lift-lambdas-in-module
   "λ Module → Module
@@ -226,7 +209,6 @@
            (conj @defs new-ast)))
        (reduce concat)
        (assoc module :forms)))
-
 
 (defn lift-lambdas
   "λ Whole-AST → options → AST

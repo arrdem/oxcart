@@ -1,12 +1,3 @@
-;;   Copyright (c) Reid McKenzie, Rich Hickey & contributors. The use
-;;   and distribution terms for this software are covered by the
-;;   Eclipse Public License 1.0
-;;   (http://opensource.org/licenses/eclipse-1.0.php) which can be
-;;   found in the file epl-v10.html at the root of this distribution.
-;;   By using this software in any fashion, you are agreeing to be
-;;   bound by the terms of this license.  You must not remove this
-;;   notice, or any other, from this software.
-
 (ns oxcart.passes.fn-reduction
   {:doc "This namespace implements a multi-arity to single arity
         reduction over functions intended for use in enabling static
@@ -20,7 +11,6 @@
             [clojure.tools.analyzer.ast :refer [postwalk]]
             [clojure.tools.analyzer.passes.jvm.emit-form :refer [emit-form]]))
 
-
 (defn munge-symbol
   [sym arity variadic]
   (symbol
@@ -31,7 +21,6 @@
         (when variadic
           "+"))))
 
-
 (defn method-variadic?
   [method]
   (if (list? method)
@@ -41,7 +30,6 @@
           (some :variadic?
                 (:params method))))))
 
-
 (defn munge-fn-name
   [wrapping-def
    {:keys [params] :as method}]
@@ -49,7 +37,6 @@
    (pattern/def->symbol wrapping-def)
    (count params)
    (method-variadic? method)))
-
 
 (defn fn-is-multiple-arity?
   "(λ AST) → Boolean
@@ -59,7 +46,6 @@
   [{:keys [op methods]}]
   (and (= op :fn)
        (> (count methods) 1)))
-
 
 (defn promote-method
   "(λ AST → List → Env) → AST
@@ -84,7 +70,6 @@
     (eval-in new-def env)
     (ast new-def env)))
 
-
 (defn write-body
   [wrapping-def
    raw-method
@@ -108,7 +93,6 @@
                                          new-params)))]
 
     new-form))
-
 
 (defn rewrite-fn
   [{:keys [methods env] :as fn-ast}
@@ -177,7 +161,6 @@
 
       (ast new-fn env))))
 
-
 (defn rewrite-fn-decls
   "(λ AST → (atom {Var → {(U Number :variadic) → Var}})) → (U AST (Vec AST))
 
@@ -223,7 +206,6 @@
                 vec
                 (conj new-ast)))))
 
-
 (defn rewrite-fn-invokes
   "(λ AST → (Atom {Var → {(U Number :variadic) → Var}})) → AST
 
@@ -247,7 +229,6 @@
                       node)
                     node)
                   node)))))
-
 
 (defn reduce-fn-arities
   "(λ Whole-AST → Options) → Whole-AST
