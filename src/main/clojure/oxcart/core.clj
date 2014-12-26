@@ -101,10 +101,10 @@
                    options (if (#{'clojure.core/ns 'ns} (first form))
                              (dissoc options :forms)
                              options)]
-               
+
                (doseq [expr statements]
                  (eval expr options))
-               
+
                (eval ret options))
 
              (nil? mform)
@@ -120,14 +120,14 @@
                  (let [res (when (and eval?
                                       (not (= 'clojure.core (.name *ns*))))
                              (em.jvm/eval mform))]
-                   
+
                    (let [ast (-> mform
                                  (util/ast))]
-                     
+
                      ;; Add to the accumulator for the whole read
                      ;; program. Note that the following forms are
                      ;; discarded:
-                     ;; 
+                     ;;
                      ;; - clojure.core/require
                      ;; - clojure.core/use
                      ;; - clojure.core/refer
@@ -160,7 +160,7 @@
        (try
          (alter-var-root ~l (constantly ~r))
          (with-macro-redefs [~@bindings] ~@forms)
-         (finally 
+         (finally
            (alter-var-root ~l (constantly rootv#)))))
     `(do ~@forms)))
 
