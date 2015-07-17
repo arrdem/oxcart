@@ -7,6 +7,7 @@
             [oxcart.passes :refer [record-pass clobber-passes]]
             [oxcart.pattern :as pattern]
             [clojure.tools.analyzer.ast :as ast]
+            [clojure.tools.analyzer.env :as env]
             [clojure.tools.analyzer.passes.jvm.emit-form :refer [emit-form]]
             [clojure.tools.analyzer.passes.collect-closed-overs
              :refer [collect-closed-overs]]
@@ -202,10 +203,13 @@
   [{:keys [forms] :as module}]
   (->> (for [form forms]
          (let [defs    (atom [])
-               new-ast (-> form
-                           (collect-closed-overs {:what #{:closed-overs} :where #{:fn}})
-                           (push-down-top-level)
-                           (ast/prewalk (partial lift-fns defs)))]
+               new-ast (env/with-env
+                         {:collect-closed-overs/what  #{:closed-overs}
+                          :collect-closed-overs/where #{:fn}}
+                         (-> form
+                             (collect-closed-overs)
+                             (push-down-top-level)
+                             (ast/prewalk (partial lift-fns defs))))]
            (conj @defs new-ast)))
        (reduce concat)
        (assoc module :forms)))
