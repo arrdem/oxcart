@@ -293,8 +293,13 @@
 (defn -main [namespace]
   (let [the-ns (symbol namespace)
         entry  (symbol namespace "-main")]
-    (compile (s/replace namespace #"\." "/")
-             {:emitter emit
-              :settings {:emitter {:entry entry}}}))
-  (shutdown-agents)
-  nil)
+    (try (compile (s/replace namespace #"\." "/")
+                  {:emitter emit
+                   :settings {:emitter {:entry entry}}})
+         (shutdown-agents)
+         (System/exit 0)
+
+         (catch Exception e
+           (.printStackTrace e)
+           (shutdown-agents)
+           (System/exit 1)))))
