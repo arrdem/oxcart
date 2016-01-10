@@ -9,7 +9,7 @@
                  [org.clojure/tools.analyzer.jvm "0.5.3-SNAPSHOT"]
                  [org.clojure/tools.emitter.jvm "0.1.0-SNAPSHOT"]
                  [org.clojure/tools.reader "0.8.5"]
-                 [com.taoensso/timbre "3.2.1"]
+                 [com.taoensso/timbre "4.2.0"]
                  ]
   :main oxcart.core
   :min-lein-version "2.0.0"
