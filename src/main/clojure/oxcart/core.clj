@@ -311,9 +311,17 @@
 
 (defn -main [namespace]
   (let [the-ns (symbol namespace)
-        entry  (symbol namespace "-main")]
-    (compile (s/replace namespace #"\." "/")
-             {:emitter emit
-              :settings {:emitter {:entry entry}}}))
-  (shutdown-agents)
-  nil)
+        entry  (symbol namespace "-main")
+        flag   (volatile! 1)]
+    (try
+      (compile (s/replace namespace #"\." "/")
+               {:emitter emit
+                :settings {:emitter {:entry entry}}})
+      (vreset! flag 0)
+      
+      (catch Exception e
+        (.printMessage e))
+
+      (finally
+        (shutdown-agents)
+        (System/exit @flag)))))
