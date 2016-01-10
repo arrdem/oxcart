@@ -241,12 +241,12 @@
   mechanics for the common case of wanting to load a resource and get
   a whole program AST as a return value."
   ([res]
-     (load-ast res {}))
+   (load-ast res {}))
 
   ([res opts]
-     (let [forms (atom {})]
-       (load res (merge opts {:forms forms}))
-       @forms)))
+   (let [forms (atom {})]
+     (load res (merge opts {:forms forms}))
+     @forms)))
 
 
 (defn compile
