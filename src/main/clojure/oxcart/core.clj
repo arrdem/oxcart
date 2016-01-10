@@ -27,7 +27,6 @@
             [oxcart.util :as util]
             [oxcart.core-redefs]
             [oxcart.emitter.jvm :refer [emit]])
-  (:import clojure.lang.IFn)
   (:gen-class))
 
 
