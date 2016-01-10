@@ -29,14 +29,11 @@
             [oxcart.emitter.jvm :refer [emit]])
   (:gen-class))
 
-
 (def root-directory
   @#'clojure.core/root-directory)
 
-
 (def clojure-gensym
   @#'clojure.core/gensym)
-
 
 (def ^:dynamic *load-configuration*
   "Dynamic var that oxcart/load uses to stash its configuration.
@@ -51,14 +48,12 @@
   nil by default, may be a valid configuration map for oxcart/load."
   nil)
 
-
 (defn atom? [x]
   (instance? clojure.lang.Atom x))
 
-
 (defn gensym
-  "(λ) → Symbol
-   (λ → Prefix) → Symbol
+  "λ () → Symbol
+  λ (Prefix) → Symbol
 
   Wrapper around clojure.core/gensym which adds metadata annotating
   generated symbols and permitting distinction between generated and
@@ -67,17 +62,16 @@
   If Prefix is provided, it must be a string. Otherwise a prefix of
   \"OG__\" is used by default."
   ([]
-     (gensym "OG__"))
+   (gensym "OG__"))
 
   ([x]
-     (with-meta
-       (clojure-gensym x)
-       {:gensym true})))
-
+   (with-meta
+     (clojure-gensym x)
+     {:gensym true})))
 
 (defn eval
-  "(λ form) → value
-  (λ form → config-map) → value
+  "λ (form) → value
+  λ (form config-map) → value
 
   Form is any Clojure sexpr, config map is a load configuration and
   value is an arbitrary Clojure value or class.
@@ -87,83 +81,75 @@
   the invoking Clojure runtime."
 
   ([form]
-     (eval form
-           (or *load-configuration*
-               {:debug? false})))
+   (eval form
+         (or *load-configuration*
+             {:debug? false})))
 
   ([form {:keys [debug? eval? exec? forms classloader env]
           :or   {debug? false
                  eval?  true
                  env    (ana.jvm/empty-env)}
           :as   options}]
-     (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
-                   (macroexpand form env))]
+   (let [mform (binding [macroexpand-1 ana.jvm/macroexpand-1]
+                 (macroexpand form env))]
 
-       (cond (and (seq? mform)
-                  (= 'do (first mform)))
+     (cond
+       ;; DO form handling
+       ;;---------------------
+       (and (seq? mform)
+            (= 'do (first mform)))
+       ,,(let [[statements ret] (loop [statements  []
+                                       [e & exprs] (rest mform)]
+                                  (if-not (seq exprs)
+                                    [statements e]
+                                    (recur (conj statements e) exprs)))
 
-             ;; DO form handling
-             ;;---------------------
-             (let [[statements ret]
-                   (loop [statements  []
-                          [e & exprs] (rest mform)]
-                     (if-not (seq exprs)
-                       [statements e]
-                       (recur (conj statements e) exprs)))
+               ;; If we are in the do of an (ns), discard all forms.
+               options          (if (#{'clojure.core/ns 'ns} (first form))
+                                  (dissoc options :forms)
+                                  options)]
+           (doseq [expr statements]
+             (eval expr options))
 
-                   ;; If we are in the do of an (ns), discard all forms.
-                   options (if (#{'clojure.core/ns 'ns} (first form))
-                             (dissoc options :forms)
-                             options)]
-               
-               (doseq [expr statements]
-                 (eval expr options))
-               
-               (eval ret options))
+           (eval ret options))
 
-             (nil? mform)
-             ;; Top level nil handling
-             ;;---------------------------
-             nil
+       ;; Top level nil handling
+       ;;---------------------------
+       (nil? mform)
+       ,,nil
 
-
-             true
-             ;; Bare expression handling
-             ;; ----------------------------
-             (do ;; Run the code for side-effects.
-                 (let [res (when (and eval?
-                                      (not (= 'clojure.core (.name *ns*))))
-                             (em.jvm/eval mform))]
-                   
-                   (let [ast (-> mform
-                                 (util/ast))]
-                     
-                     ;; Add to the accumulator for the whole read
-                     ;; program. Note that the following forms are
-                     ;; discarded:
-                     ;; 
-                     ;; - clojure.core/require
-                     ;; - clojure.core/use
-                     ;; - clojure.core/refer
-                     ;; - clojure.core/import
-                     (when (and forms
-                                (atom? forms)
-                                (not (#{'clojure.core/require 'require
-                                        'clojure.core/use     'use
-                                        'clojure.core/refer   'refer
-                                        'clojure.core/import  'import
-                                        'clojure.core/import* 'import*}
-                                      (first form))))
-                       (swap! forms
-                              #(-> %1
-                                   (update-in [(.name *ns*) :forms]
-                                              (comp vec concat) [ast])
-                                   (update-in [:modules]
-                                              (fn [x]
-                                                (conj (or x #{})
-                                                      (.name *ns*))))))))
-                   res))))))
-
+       ;; Bare expression handling
+       ;; ----------------------------
+       true
+       ,,(let [res (when (and eval?
+                              (not (= 'clojure.core (.name *ns*))))
+                     (em.jvm/eval mform))
+               ast (util/ast mform)]
+           ;; Add to the accumulator for the whole read
+           ;; program. Note that the following forms are
+           ;; discarded:
+           ;;
+           ;; - clojure.core/require
+           ;; - clojure.core/use
+           ;; - clojure.core/refer
+           ;; - clojure.core/import
+           (when (and forms
+                      (atom? forms)
+                      (not (#{'clojure.core/require 'require
+                              'clojure.core/use     'use
+                              'clojure.core/refer   'refer
+                              'clojure.core/import  'import
+                              'clojure.core/import* 'import*}
+                            (first form))))
+             (swap! forms
+                    #(-> %1
+                         (update-in [(.name *ns*) :forms]
+                                    (comp vec concat) [ast])
+                         (update-in [:modules]
+                                    (fn [x]
+                                      (conj (or x #{})
+                                            (.name *ns*)))))))
+           res)))))
 
 (defmacro with-macro-redefs
   "Bindings is a sequence of pairs of symbols, where the left hand
@@ -175,14 +161,13 @@
        (try
          (alter-var-root ~l (constantly ~r))
          (with-macro-redefs [~@bindings] ~@forms)
-         (finally 
+         (finally
            (alter-var-root ~l (constantly rootv#)))))
     `(do ~@forms)))
 
-
 (defn load
-  "(λ String) → nil
-   (λ String → config-map) → nil
+  "λ (String) → nil
+  λ (String config-map) → nil
 
   Loads a resource on the classpath identified by a string path as
   clojure code via eval for side-effects against the invoking Clojure
@@ -199,42 +184,42 @@
     will be conj'd to it in reading & evaluation order."
 
   ([res]
-     (load res
-           (or *load-configuration*
-               {:debug? false})))
+   (load res
+         (or *load-configuration*
+             {:debug? false})))
 
   ([res {:keys [debug?] :as options}]
-     (let [p      (str (apply str (replace {\. \/ \- \_} res)) ".clj")
-           eof    (Object.)
-           p      (if (.startsWith p "/")
-                    (subs p 1)
-                    (-> *ns* ns-name root-directory (str "/" p) (subs 1)))
-           file   (-> p io/resource io/reader slurp)
-           reader (readers/indexing-push-back-reader file 1 p)]
-       (binding [*ns*                 *ns*
-                 *file*               p
-                 *load-configuration* options]
-         (with-redefs [clojure.core/load   oxcart.core/load
-                       clojure.core/eval   oxcart.core/eval
-                       clojure.core/gensym oxcart.core/gensym]
-           (with-macro-redefs [#'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
-                               #'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
-                               #'clojure.core/deftype         @#'oxcart.core-redefs/deftype
-                               #'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
-                               #'clojure.core/proxy           @#'oxcart.core-redefs/proxy
-                               #'clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
-                               #'clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol]
-             (loop []
-               (let [form (r/read reader false eof)]
-                 (when (not= eof form)
-                   (eval form options)
-                   (recur))))))))
-  nil))
+   (let [p      (str (apply str (replace {\. \/ \- \_} res)) ".clj")
+         eof    (Object.)
+         p      (if (.startsWith p "/")
+                  (subs p 1)
+                  (-> *ns* ns-name root-directory (str "/" p) (subs 1)))
+         file   (-> p io/resource io/reader slurp)
+         reader (readers/indexing-push-back-reader file 1 p)]
+     (binding [*ns*                 *ns*
+               *file*               p
+               *load-configuration* options]
+       (with-redefs [clojure.core/load   oxcart.core/load
+                     clojure.core/eval   oxcart.core/eval
+                     clojure.core/gensym oxcart.core/gensym]
+         (with-macro-redefs [#'clojure.core/defmulti        @#'oxcart.core-redefs/defmulti
+                             #'clojure.core/defmethod       @#'oxcart.core-redefs/defmethod
+                             #'clojure.core/deftype         @#'oxcart.core-redefs/deftype
+                             #'clojure.core/defprotocol     @#'oxcart.core-redefs/defprotocol
+                             #'clojure.core/proxy           @#'oxcart.core-redefs/proxy
+                             #'clojure.core/extend-type     @#'oxcart.core-redefs/extend-type
+                             #'clojure.core/extend-protocol @#'oxcart.core-redefs/extend-protocol]
+           (loop []
+             (let [form (r/read reader false eof)]
+               (when (not= eof form)
+                 (eval form options)
+                 (recur))))))))
+   nil))
 
 
 (defn load-ast
-  "(λ Resource) → Whole-AST
-  (λ Resource → Options) → Whole-AST
+  "λ (Resource) → Whole-AST
+  λ (Resource Options) → Whole-AST
 
   Wrapper around the main load function which provides helper
   mechanics for the common case of wanting to load a resource and get
@@ -249,8 +234,8 @@
 
 
 (defn compile
-  "(λ String) → nil
-   (λ String → config-map) → nil
+  "λ (String) → nil
+  λ (String config-map) → nil
 
   Loads a resource via load, applies any compilation transformations
   specified in the config-map, emitting and loading the resulting
@@ -314,10 +299,10 @@
         flag   (volatile! 1)]
     (try
       (compile (s/replace namespace #"\." "/")
-               {:emitter emit
+               {:emitter  emit
                 :settings {:emitter {:entry entry}}})
       (vreset! flag 0)
-      
+
       (catch Exception e
         (.printMessage e))
 
