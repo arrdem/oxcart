@@ -10,8 +10,7 @@
 (ns oxcart.passes
   {:doc "Implements a naive pass manager and dependency system."
    :author "Reid McKenzie"
-   :added  "0.0.6"}
-  (:require [oxcart.util :refer [update]]))
+   :added  "0.0.6"})
 
 
 ;; Whole-ASTs are maps of this structure:

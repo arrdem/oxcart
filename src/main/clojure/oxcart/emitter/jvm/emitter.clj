@@ -13,7 +13,7 @@
 
 (ns oxcart.emitter.jvm.emitter
   (:refer-clojure :exclude [cast flatten])
-  (:require [oxcart.util :refer [var->name var->ns map-vals update]]
+  (:require [oxcart.util :refer [var->name var->ns map-vals]]
             [oxcart.emitter.util :refer [flatten]]
             [clojure.tools.analyzer.utils :as u]
             [clojure.tools.analyzer.jvm.utils :refer [primitive? numeric? box prim-or-obj] :as j.u]

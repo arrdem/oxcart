@@ -86,16 +86,6 @@
       (recur f dat'))))
 
 
-(defn update
-  "λ {A → B} → A → (λ B → args* → C) → args* → {A → C}
-
-  Updates a key in the map by applying f to the value at that key more
-  arguments, returning the resulting map."
-  [map key f & args]
-  (assoc map key
-         (apply f (get map key) args)))
-
-
 (defn format-line-info
   "λ AST → (Option String)
 
