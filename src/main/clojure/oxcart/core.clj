@@ -278,36 +278,36 @@
     being a -main method or other program entry point."
 
   ([res]
-     ;; FIXME:
-     ;;  Saner defaults with respect to the default emitter and
-     ;;  default passes would probably be a good thing in future.
-     (compile res nil))
+   ;; FIXME:
+   ;;  Saner defaults with respect to the default emitter and
+   ;;  default passes would probably be a good thing in future.
+   (compile res nil))
 
   ([res {:keys [passes emitter settings] :as config}]
-     (let [forms  (atom {})
-           config {:debug? false
-                   :exec?  true
-                   :forms forms}]
-       ;; Loads and macroexpands all the code using the built config
-       ;; to generate the forms and defs structures.
-       ;;
-       ;; By definition of a well formed Clojure program, loading the
-       ;; "root" resource must load all depended resources, otherwise
-       ;; there will be a symbol resolution error in the compiling
-       ;; Clojure runtime.
-       (load res config)
+   (let [forms  (atom {})
+         config {:debug? false
+                 :exec?  true
+                 :forms  forms}]
+     ;; Loads and macroexpands all the code using the built config
+     ;; to generate the forms and defs structures.
+     ;;
+     ;; By definition of a well formed Clojure program, loading the
+     ;; "root" resource must load all depended resources, otherwise
+     ;; there will be a symbol resolution error in the compiling
+     ;; Clojure runtime.
+     (load res config)
 
-       (let [settings (:passes settings)]
-         (doseq [pass passes]
-           (swap! forms pass settings)))
+     (let [settings (:passes settings)]
+       (doseq [pass passes]
+         (swap! forms pass settings)))
 
-       ;; Having taken an O(Nᵏ) compile operation to the face we now
-       ;; run the emitter and call it quits.
-       (let [settings (:emitter settings)
-             settings (merge settings
-                             (select-keys settings [:entry]))]
-         (emitter @forms settings)))
-     nil))
+     ;; Having taken an O(Nᵏ) compile operation to the face we now
+     ;; run the emitter and call it quits.
+     (let [settings (:emitter settings)
+           settings (merge settings
+                           (select-keys settings [:entry]))]
+       (emitter @forms settings)))
+   nil))
 
 (defn -main [namespace]
   (let [the-ns (symbol namespace)
